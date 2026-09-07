@@ -487,28 +487,42 @@ class Ship(pygame.sprite.Sprite):
 
         elif sc == "gunship":
             # ── Ironjaw Gunship — wide weapons platform ───────────────────────
-            # Flat slab hull
-            hull = pg.Rect(8, cy - 10, w - 16, 20)
+            # Flat slab hull with angled front
+            hull = pg.Rect(8, cy - 11, w - 16, 22)
             pg.draw.rect(surf, dark, hull)
             pg.draw.rect(surf, mid, hull, 1)
-            # Gun pod port side
-            for gpy in [cy - 14, cy - 7, cy + 5, cy + 12]:
-                gp = pg.Rect(cx - 2, gpy, 20, 4)
+            # Angled nose plate
+            prow = [(w - 4, cy), (w - 14, cy - 9), (cx + 4, cy - 11),
+                    (cx + 4, cy + 11), (w - 14, cy + 9)]
+            pg.draw.polygon(surf, mid, prow)
+            pg.draw.polygon(surf, trim, prow, 1)
+            # Gun rails top and bottom (4 barrels)
+            for gpy, offs in [(cy - 16, -2), (cy - 8, -1), (cy + 5, 1), (cy + 13, 2)]:
+                gp = pg.Rect(cx, gpy, 18, 4)
                 pg.draw.rect(surf, mid, gp)
                 pg.draw.rect(surf, light, gp, 1)
-                # Barrel extension
-                pg.draw.line(surf, trim, (cx + 18, gpy + 2), (w - 4, gpy + 2), 2)
-            # Cockpit slab
-            cb = pg.Rect(w - 16, cy - 7, 12, 14)
+                # Muzzle extension
+                pg.draw.line(surf, trim, (cx + 18, gpy + 2), (w - 6 + offs, gpy + 2), 2)
+                # Muzzle flash dot
+                pg.draw.circle(surf, trim, (w - 6 + offs, gpy + 2), 2)
+            # Armoured side flanks
+            pg.draw.rect(surf, mid, pg.Rect(cx - 8, cy - 7, 6, 14))
+            pg.draw.rect(surf, (40,50,70), pg.Rect(cx - 8, cy - 7, 6, 14), 1)
+            # Cockpit fortress block
+            cb = pg.Rect(w - 18, cy - 8, 14, 16)
             pg.draw.rect(surf, mid, cb)
             pg.draw.rect(surf, trim, cb, 1)
-            for wy in [cy - 3, cy + 3]:
-                pg.draw.circle(surf, (120, 200, 255), (w - 10, wy), 2)
-            # Dual engine bank
-            for ey in [cy - 7, cy + 5]:
-                er = pg.Rect(4, ey, 8, 5)
+            # Targeting visor strip
+            pg.draw.rect(surf, (40, 100, 180), pg.Rect(w - 18, cy - 2, 14, 4))
+            pg.draw.rect(surf, (80, 160, 255), pg.Rect(w - 18, cy - 2, 14, 4), 1)
+            # Dual engine bank (wider spread)
+            for ey in [cy - 8, cy + 6]:
+                er = pg.Rect(4, ey, 9, 5)
                 pg.draw.rect(surf, dark, er)
-                _glow(surf, (60, 140, 255), (7, ey + 2), 4)
+                pg.draw.rect(surf, (40, 50, 80), er, 1)
+                _glow(surf, (60, 140, 255), (7, ey + 2), 5)
+            # Panel line
+            pg.draw.line(surf, mid, (cx - 4, cy), (cx + 12, cy), 1)
 
         elif sc == "destroyer":
             # ── Hammerfall Destroyer — heavy forward-ramming warship ──────────

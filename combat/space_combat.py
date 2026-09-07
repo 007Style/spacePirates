@@ -2061,6 +2061,41 @@ class SpaceCombat:
                                  special_flags=pygame.BLEND_ALPHA_SDL2)
 
             surface.blit(rotated, (sx, sy))
+
+            # ── Shield bubble (drawn over sprite when shield is active) ───────
+            if ship.shield > 0 and ship.max_shield > 0:
+                shield_pct = ship.shield / ship.max_shield
+                # Colour: player=blue, ally=cyan, enemy=amber
+                if ship is self.player_ship:
+                    shcol = (60, 120, 255)
+                elif ship in all_allied:
+                    shcol = (40, 200, 200)
+                else:
+                    shcol = (180, 140, 40)
+                # Alpha proportional to shield %
+                alpha = int(30 + 60 * shield_pct)
+                ring_r2 = max(rotated.get_width(), rotated.get_height()) // 2 + 5
+                sh_surf = pygame.Surface((ring_r2 * 2 + 4, ring_r2 * 2 + 4), pygame.SRCALPHA)
+                # Draw hexagonal shield facets (6 segments, slowly rotating)
+                import time as _st
+                _t_now = _st.time()
+                for seg in range(6):
+                    a0 = math.radians(seg * 60 + _t_now * 15)
+                    a1 = math.radians((seg + 1) * 60 + _t_now * 15)
+                    p0 = (int(ring_r2 + 2 + ring_r2 * math.cos(a0)),
+                          int(ring_r2 + 2 + ring_r2 * math.sin(a0)))
+                    p1 = (int(ring_r2 + 2 + ring_r2 * math.cos(a1)),
+                          int(ring_r2 + 2 + ring_r2 * math.sin(a1)))
+                    pygame.draw.line(sh_surf, (*shcol, alpha), p0, p1, 1)
+                    # Facet fill (subtle)
+                    mid_pt = (ring_r2 + 2, ring_r2 + 2)
+                    pygame.draw.polygon(sh_surf, (*shcol, alpha // 4),
+                                        [mid_pt, p0, p1])
+                surface.blit(sh_surf,
+                             (int(ship.x + ox) - ring_r2 - 2,
+                              int(ship.y + oy) - ring_r2 - 2),
+                             special_flags=pygame.BLEND_ALPHA_SDL2)
+
             # Friendly ring for allied ships
             if ship in all_allied:
                 ring_r = max(rotated.get_width(), rotated.get_height()) // 2 + 4
