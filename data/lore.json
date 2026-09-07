@@ -1,0 +1,58 @@
+[
+  {
+    "id": "lore_pirates",
+    "category": "factions",
+    "title": "Origins of the Space Pirates",
+    "unlock_condition": "faction_rep_space_pirates_friendly",
+    "text": "The Space Pirates trace their lineage to the Great Collapse — when three major shipping conglomerates failed simultaneously and left thousands of cargo haulers stranded without contracts or credits. Those crews banded together, turned their ships toward the profitable sector lanes, and never looked back. What began as desperation became culture."
+  },
+  {
+    "id": "lore_merchant_guild",
+    "category": "factions",
+    "title": "The Merchant Guild's True Power",
+    "unlock_condition": "faction_rep_merchant_guild_friendly",
+    "text": "The Merchant Guild does not just control trade — it controls information. Every transaction logged, every cargo manifest filed, every crew contract signed passes through Guild servers. They know what you carry before you do. Some say the Guild's true currency is not credits but secrets."
+  },
+  {
+    "id": "lore_terran_compact",
+    "category": "nations",
+    "title": "The Compact's First Charter",
+    "unlock_condition": "visit_nation_terran_compact",
+    "text": "The Terran Compact was founded on a single principle: no citizen of human space should die to lawlessness. Noble in intent. In practice, the Compact's enforcement fleets have destroyed as many innocent ships as pirate ones. The charter has never been amended."
+  },
+  {
+    "id": "lore_void_collective",
+    "category": "nations",
+    "title": "What the Void Collective Remembers",
+    "unlock_condition": "visit_nation_void_collective",
+    "text": "The Void Collective does not speak of their origins. Not to outsiders. Not even to most members. What is known: they predate the Compact by at least four hundred years. Their ships use materials that cannot be replicated in any known foundry. Their oldest members have not aged in living memory."
+  },
+  {
+    "id": "lore_secret_faction_01",
+    "category": "secrets",
+    "title": "A Signal With No Source",
+    "unlock_condition": "collect_secret_item",
+    "text": "Three ships received the same signal on the same frequency at the same microsecond. The signal contained no language. No pattern any system could decode. All three ships subsequently altered course. None of their crews filed a report. One crew member later described it as 'remembering something I was never taught.'"
+  },
+  {
+    "id": "lore_void_reaper",
+    "category": "secrets",
+    "title": "The Void Reaper: Hull Log Fragment",
+    "unlock_condition": "discover_void_dreadnought",
+    "text": "ENTRY 001 — We found it drifting at the edge of mapped space. Hull intact. Power readings off the charts. ENTRY 002 — The doors opened on their own. ENTRY 003 — There are no more entries."
+  },
+  {
+    "id": "lore_ship_graveyard",
+    "category": "locations",
+    "title": "The Graveyard Keepers",
+    "unlock_condition": "visit_ship_graveyard",
+    "text": "No one built the Ship Graveyard. It accumulated. Every ship lost to the deep sectors over four centuries of conflict has drifted here, pulled by the same gravitational anomaly that no physicist has been able to map. Scavengers call it the Quiet. They say on clear nights you can hear the old engines trying to start."
+  },
+  {
+    "id": "lore_the_whisper",
+    "category": "secrets",
+    "title": "On The Whisper",
+    "unlock_condition": "acquire_the_whisper",
+    "text": "The weapon has no manufacturer stamp. No serial number. No alloy composition that matches any known material. The targeting system activates before the trigger is pulled. Three gunsmiths who attempted to disassemble it reported identical nightmares for six weeks afterward. The Guild classified it. Someone stole it from classification."
+  }
+]

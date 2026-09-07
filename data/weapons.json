@@ -1,0 +1,155 @@
+[
+  {
+    "id": "laser_basic",
+    "name": "Pulse Laser",
+    "type": "laser",
+    "rarity": "common",
+    "description": "A standard energy weapon. Reliable but unremarkable.",
+    "base_damage": 18,
+    "fire_rate": 1.5,
+    "range": 320,
+    "ammo_type": "energy",
+    "status_effect": null,
+    "upgrade_paths": {
+      "A": {"name": "rapid_fire", "description": "High speed, lower damage per shot"},
+      "B": {"name": "beam_cannon", "description": "Sustained beam, melts shields"}
+    },
+    "xp_to_specialize": 200,
+    "contraband": false,
+    "price": 400
+  },
+  {
+    "id": "laser_beam",
+    "name": "Beam Cannon",
+    "type": "laser",
+    "rarity": "rare",
+    "description": "A focused beam that strips shields in seconds.",
+    "base_damage": 12,
+    "fire_rate": 0,
+    "range": 380,
+    "ammo_type": "energy",
+    "status_effect": "shield_drain",
+    "upgrade_paths": {
+      "A": {"name": "rapid_fire", "description": "High speed, lower damage"},
+      "B": {"name": "beam_cannon", "description": "Sustained beam, melts shields"}
+    },
+    "xp_to_specialize": 400,
+    "contraband": false,
+    "price": 5500
+  },
+  {
+    "id": "missile_basic",
+    "name": "Frag Missile",
+    "type": "missile",
+    "rarity": "common",
+    "description": "Standard homing missile. Solid splash damage.",
+    "base_damage": 55,
+    "fire_rate": 0.4,
+    "range": 600,
+    "ammo_type": "missile",
+    "status_effect": "burning",
+    "upgrade_paths": {
+      "A": {"name": "swarm_missiles", "description": "Many small fast missiles"},
+      "B": {"name": "nuke", "description": "Single massive AOE explosion"}
+    },
+    "xp_to_specialize": 250,
+    "contraband": false,
+    "price": 700
+  },
+  {
+    "id": "missile_nuke",
+    "name": "Void Torpedo",
+    "type": "missile",
+    "rarity": "epic",
+    "description": "A devastating AOE warhead that vaporizes small ships.",
+    "base_damage": 400,
+    "fire_rate": 0.1,
+    "range": 700,
+    "ammo_type": "missile",
+    "status_effect": "hull_breach",
+    "upgrade_paths": {
+      "A": {"name": "swarm_missiles", "description": "Many small fast missiles"},
+      "B": {"name": "nuke", "description": "Single massive AOE explosion"}
+    },
+    "xp_to_specialize": 600,
+    "contraband": false,
+    "price": 30000
+  },
+  {
+    "id": "railgun_basic",
+    "name": "Kinetic Railgun",
+    "type": "railgun",
+    "rarity": "uncommon",
+    "description": "High-velocity slug that ignores partial shield cover.",
+    "base_damage": 80,
+    "fire_rate": 0.5,
+    "range": 700,
+    "ammo_type": "kinetic",
+    "status_effect": null,
+    "upgrade_paths": {
+      "A": {"name": "sniper_rail", "description": "Extreme range, hull-piercing"},
+      "B": {"name": "scatter_shot", "description": "Close range spread burst"}
+    },
+    "xp_to_specialize": 300,
+    "contraband": false,
+    "price": 2200
+  },
+  {
+    "id": "emp_cannon",
+    "name": "EMP Cannon",
+    "type": "emp",
+    "rarity": "uncommon",
+    "description": "Disables enemy ship systems on hit.",
+    "base_damage": 10,
+    "fire_rate": 0.3,
+    "range": 400,
+    "ammo_type": "energy",
+    "status_effect": "emp",
+    "upgrade_paths": {
+      "A": {"name": "system_scrambler", "description": "Disables specific enemy stations"},
+      "B": {"name": "ion_storm", "description": "AOE slow and damage over area"}
+    },
+    "xp_to_specialize": 300,
+    "contraband": false,
+    "price": 3000
+  },
+  {
+    "id": "flak_cannon",
+    "name": "Flak Battery",
+    "type": "flak",
+    "rarity": "common",
+    "description": "Wide-spread shot effective against drones and missiles.",
+    "base_damage": 25,
+    "fire_rate": 1.0,
+    "range": 250,
+    "ammo_type": "kinetic",
+    "status_effect": null,
+    "upgrade_paths": {
+      "A": {"name": "point_defense", "description": "Auto-shoots down incoming missiles and drones"},
+      "B": {"name": "cluster_burst", "description": "Wide area close-range devastation"}
+    },
+    "xp_to_specialize": 200,
+    "contraband": false,
+    "price": 600
+  },
+  {
+    "id": "the_whisper",
+    "name": "The Whisper",
+    "type": "railgun",
+    "rarity": "secret",
+    "description": "A weapon that shouldn't exist. It fires before you pull the trigger.",
+    "base_damage": 500,
+    "fire_rate": 1.2,
+    "range": 9999,
+    "ammo_type": "void",
+    "status_effect": "system_offline",
+    "upgrade_paths": {
+      "A": {"name": "sniper_rail", "description": "Extreme range, hull-piercing"},
+      "B": {"name": "scatter_shot", "description": "Close range spread burst"}
+    },
+    "xp_to_specialize": 9999,
+    "contraband": true,
+    "lore": "Recovered from the Rival's flagship. No manufacturer stamp. No serial number. The targeting reticle occasionally shows ships that aren't there yet.",
+    "price": 0
+  }
+]

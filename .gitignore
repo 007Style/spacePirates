@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Saves (player data)
+saves/
+
+# macOS
+.DS_Store
+._*
+
+# IDE
+.vscode/
+.idea/
+
+# Screenshots from Photo Mode
+assets/screenshots/
+
+# Generated sounds (can be regenerated via generate_sounds.py)
+assets/sounds/*.wav
+assets/music/*.ogg

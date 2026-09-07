@@ -1,0 +1,141 @@
+[
+  {
+    "id": "crew_pilot_common",
+    "name": "Jax Renn",
+    "role": "pilot",
+    "rarity": "common",
+    "description": "A steady hand at the controls, nothing flashy.",
+    "stats": {"piloting": 12, "gunnery": 4, "engineering": 3, "combat": 5, "repair": 3},
+    "specialization_paths": {"A": "ace", "B": "tactician"},
+    "abilities": [],
+    "price": 300
+  },
+  {
+    "id": "crew_pilot_rare",
+    "name": "Nova Vex",
+    "role": "pilot",
+    "rarity": "rare",
+    "description": "A former military test pilot with unmatched reflexes.",
+    "stats": {"piloting": 22, "gunnery": 8, "engineering": 5, "combat": 9, "repair": 4},
+    "specialization_paths": {"A": "ace", "B": "tactician"},
+    "abilities": ["Evasive Maneuvers — active ability, +30% evasion for 5 seconds, 30s cooldown"],
+    "price": 4500
+  },
+  {
+    "id": "crew_pilot_legendary",
+    "name": "Ghost",
+    "role": "pilot",
+    "rarity": "legendary",
+    "description": "No one knows Ghost's real name. They have never been hit.",
+    "stats": {"piloting": 38, "gunnery": 15, "engineering": 8, "combat": 14, "repair": 6},
+    "specialization_paths": {"A": "ace", "B": "tactician"},
+    "abilities": [
+      "Evasive Maneuvers — active ability, +30% evasion for 5 seconds, 20s cooldown",
+      "Phantom Run — once per combat, become untargetable for 3 seconds"
+    ],
+    "price": 45000
+  },
+  {
+    "id": "crew_gunner_common",
+    "name": "Brik Tosh",
+    "role": "gunner",
+    "rarity": "common",
+    "description": "Pulls the trigger, hits most of the time.",
+    "stats": {"piloting": 3, "gunnery": 14, "engineering": 3, "combat": 7, "repair": 2},
+    "specialization_paths": {"A": "sharpshooter", "B": "suppressor"},
+    "abilities": [],
+    "price": 300
+  },
+  {
+    "id": "crew_gunner_epic",
+    "name": "Lyra Kade",
+    "role": "gunner",
+    "rarity": "epic",
+    "description": "Can thread a railgun shot through an asteroid field.",
+    "stats": {"piloting": 5, "gunnery": 32, "engineering": 6, "combat": 10, "repair": 3},
+    "specialization_paths": {"A": "sharpshooter", "B": "suppressor"},
+    "abilities": [
+      "Precision Shot — active, next shot deals 2x damage and pierces shields, 45s cooldown",
+      "Zone Control — passive, 10% chance to apply slow on hit"
+    ],
+    "price": 22000
+  },
+  {
+    "id": "crew_engineer_common",
+    "name": "Dax Wolff",
+    "role": "engineer",
+    "rarity": "common",
+    "description": "Keeps the lights on. Usually.",
+    "stats": {"piloting": 3, "gunnery": 3, "engineering": 13, "combat": 4, "repair": 8},
+    "specialization_paths": {"A": "overclocker", "B": "salvager"},
+    "abilities": [],
+    "price": 280
+  },
+  {
+    "id": "crew_engineer_rare",
+    "name": "Pip",
+    "role": "engineer",
+    "rarity": "rare",
+    "description": "A child prodigy who can fix anything with spare parts.",
+    "stats": {"piloting": 5, "gunnery": 4, "engineering": 25, "combat": 5, "repair": 18},
+    "specialization_paths": {"A": "overclocker", "B": "salvager"},
+    "abilities": [
+      "Emergency Patch — active, instantly restore 20% max hull, 60s cooldown",
+      "Salvage Eye — passive, loot drops have +10% rarity roll"
+    ],
+    "price": 6000
+  },
+  {
+    "id": "crew_combat_common",
+    "name": "Rook",
+    "role": "combat",
+    "rarity": "common",
+    "description": "A big person with a bigger gun.",
+    "stats": {"piloting": 2, "gunnery": 8, "engineering": 2, "combat": 15, "repair": 3},
+    "specialization_paths": {"A": "soldier", "B": "infiltrator"},
+    "abilities": [],
+    "price": 320
+  },
+  {
+    "id": "crew_combat_secret",
+    "name": "The Hollow",
+    "role": "combat",
+    "rarity": "secret",
+    "description": "A being of unknown origin. It follows orders. It does not sleep.",
+    "stats": {"piloting": 10, "gunnery": 20, "engineering": 10, "combat": 50, "repair": 10},
+    "specialization_paths": {"A": "soldier", "B": "infiltrator"},
+    "abilities": [
+      "Undying — if defeated in boarding, returns with 1 HP and full combat stat for remainder of fight",
+      "Fear Aura — enemy crew combat stat -15% while The Hollow is in the same room",
+      "Void Step — can move to any room in one action during boarding"
+    ],
+    "lore": "Discovered in a sealed brig of a derelict Void Collective vessel. No manifest entry. No origin. It simply stood up when the door opened.",
+    "price": 0
+  },
+  {
+    "id": "crew_mechanic_common",
+    "name": "Sera Hull",
+    "role": "mechanic",
+    "rarity": "common",
+    "description": "Patch jobs and pipe wrenches. Gets it done.",
+    "stats": {"piloting": 3, "gunnery": 3, "engineering": 8, "combat": 4, "repair": 14},
+    "specialization_paths": {"A": "field_medic", "B": "roboticist"},
+    "abilities": [],
+    "price": 270
+  },
+  {
+    "id": "crew_mechanic_legendary",
+    "name": "Iron Mara",
+    "role": "mechanic",
+    "rarity": "legendary",
+    "description": "Has rebuilt three ships from scrap in active combat zones.",
+    "stats": {"piloting": 6, "gunnery": 7, "engineering": 20, "combat": 10, "repair": 40},
+    "specialization_paths": {"A": "field_medic", "B": "roboticist"},
+    "abilities": [
+      "Crisis Repair — active, restore 35% hull over 5 seconds, usable once per combat",
+      "Drone Whisperer — passive, all friendly drones have +20% HP and damage",
+      "Auto-Med — passive, injured crew recover 50% faster"
+    ],
+    "price": 50000
+  }
+]

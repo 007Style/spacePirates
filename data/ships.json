@@ -1,0 +1,655 @@
+[
+  {
+    "id": "fighter_mk1",
+    "name": "Corsair Mk I",
+    "class": "fighter",
+    "rarity": "common",
+    "description": "A nimble single-seat fighter favored by rookie pirates.",
+    "max_hull": 120,
+    "max_shield": 60,
+    "base_speed": 180,
+    "base_evasion": 0.12,
+    "fuel_capacity": 100,
+    "crew_slots": 3,
+    "free_module_slots": 2,
+    "hardpoint_slots": {
+      "small": 2,
+      "medium": 1,
+      "large": 0
+    },
+    "hull_type": "light",
+    "quirks": [
+      "Nimble \u2014 evasion +5% when hull < 50%"
+    ],
+    "specialization_paths": {
+      "A": "fast_attack",
+      "B": "heavy_gunship"
+    },
+    "contraband": false,
+    "price": 800,
+    "drone_slots": 0,
+    "starter": true,
+    "bay_slots": 0
+  },
+  {
+    "id": "fighter_mk2",
+    "name": "Viper Mk II",
+    "class": "fighter",
+    "rarity": "uncommon",
+    "description": "An upgraded fighter with reinforced plating and twin turrets.",
+    "max_hull": 160,
+    "max_shield": 90,
+    "base_speed": 170,
+    "base_evasion": 0.15,
+    "fuel_capacity": 110,
+    "crew_slots": 4,
+    "free_module_slots": 3,
+    "hardpoint_slots": {
+      "small": 2,
+      "medium": 2,
+      "large": 0
+    },
+    "hull_type": "light",
+    "quirks": [
+      "Twin Linked \u2014 firing both small hardpoints costs 80% ammo"
+    ],
+    "specialization_paths": {
+      "A": "fast_attack",
+      "B": "heavy_gunship"
+    },
+    "contraband": false,
+    "price": 2200,
+    "drone_slots": 0,
+    "starter": false,
+    "bay_slots": 0
+  },
+  {
+    "id": "fighter_elite",
+    "name": "Phantom Blade",
+    "class": "fighter",
+    "rarity": "rare",
+    "description": "A rare stealth-plated fighter used by elite pirates.",
+    "max_hull": 200,
+    "max_shield": 140,
+    "base_speed": 200,
+    "base_evasion": 0.22,
+    "fuel_capacity": 130,
+    "crew_slots": 5,
+    "free_module_slots": 4,
+    "hardpoint_slots": {
+      "small": 3,
+      "medium": 2,
+      "large": 1
+    },
+    "hull_type": "adaptive",
+    "quirks": [
+      "Ghost Plating \u2014 15% chance to dodge any hit",
+      "Stealth Systems \u2014 reduced detection range by enemies"
+    ],
+    "specialization_paths": {
+      "A": "fast_attack",
+      "B": "heavy_gunship"
+    },
+    "contraband": false,
+    "price": 7500,
+    "drone_slots": 0,
+    "starter": false,
+    "bay_slots": 0
+  },
+  {
+    "id": "corvette_mk1",
+    "name": "Raptor Corvette",
+    "class": "corvette",
+    "rarity": "common",
+    "description": "A medium warship bridging the gap between fighters and freighters. Fast for its size with twin cannons.",
+    "lore": "The backbone of mid-tier pirate fleets.",
+    "max_hull": 200,
+    "max_shield": 90,
+    "base_speed": 150,
+    "base_evasion": 0.08,
+    "fuel_capacity": 120,
+    "crew_slots": 5,
+    "free_module_slots": 3,
+    "hardpoint_slots": {
+      "small": 2,
+      "medium": 2,
+      "large": 0
+    },
+    "hull_type": "medium",
+    "quirks": [
+      "Twin Cannons \u2014 fires two shots per volley"
+    ],
+    "specialization_paths": {
+      "A": "heavy_gunship",
+      "B": "interceptor"
+    },
+    "contraband": false,
+    "price": 1800,
+    "drone_slots": 2,
+    "starter": true,
+    "bay_slots": 0
+  },
+  {
+    "id": "corvette_mk2",
+    "name": "Viper Corvette",
+    "class": "corvette",
+    "rarity": "uncommon",
+    "description": "Upgraded corvette with enhanced shields and a medium weapon slot.",
+    "lore": "Favored by veteran pirates who want firepower without sacrificing mobility.",
+    "max_hull": 260,
+    "max_shield": 130,
+    "base_speed": 140,
+    "base_evasion": 0.09,
+    "fuel_capacity": 130,
+    "crew_slots": 6,
+    "free_module_slots": 3,
+    "hardpoint_slots": {
+      "small": 2,
+      "medium": 2,
+      "large": 1
+    },
+    "hull_type": "medium",
+    "quirks": [
+      "Viper Strike \u2014 15% chance to fire a second burst on crit"
+    ],
+    "specialization_paths": {
+      "A": "heavy_gunship",
+      "B": "boarding_specialist"
+    },
+    "contraband": false,
+    "price": 3200,
+    "drone_slots": 3,
+    "starter": false,
+    "bay_slots": 0
+  },
+  {
+    "id": "freighter_mk1",
+    "name": "Bulkhead Hauler",
+    "class": "freighter",
+    "rarity": "common",
+    "description": "A slow, sturdy cargo ship that can take a beating.",
+    "max_hull": 280,
+    "max_shield": 80,
+    "base_speed": 90,
+    "base_evasion": 0.04,
+    "fuel_capacity": 200,
+    "crew_slots": 6,
+    "free_module_slots": 4,
+    "hardpoint_slots": {
+      "small": 1,
+      "medium": 1,
+      "large": 0
+    },
+    "hull_type": "heavy",
+    "quirks": [
+      "Reinforced Bulkheads \u2014 hull damage reduced by 10%"
+    ],
+    "specialization_paths": {
+      "A": "armored_tank",
+      "B": "smuggler"
+    },
+    "contraband": false,
+    "price": 1200,
+    "drone_slots": 1,
+    "starter": true,
+    "bay_slots": 0
+  },
+  {
+    "id": "freighter_smuggler",
+    "name": "Shadow Runner",
+    "class": "freighter",
+    "rarity": "epic",
+    "description": "A legendary smuggler vessel with hidden compartments.",
+    "max_hull": 320,
+    "max_shield": 200,
+    "base_speed": 140,
+    "base_evasion": 0.18,
+    "fuel_capacity": 250,
+    "crew_slots": 8,
+    "free_module_slots": 6,
+    "hardpoint_slots": {
+      "small": 2,
+      "medium": 2,
+      "large": 1
+    },
+    "hull_type": "adaptive",
+    "quirks": [
+      "Hidden Holds \u2014 contraband scan chance halved",
+      "Overclocked Engines \u2014 can burst to 200 speed for 8 seconds"
+    ],
+    "specialization_paths": {
+      "A": "armored_tank",
+      "B": "smuggler"
+    },
+    "contraband": false,
+    "price": 28000,
+    "drone_slots": 2,
+    "starter": false,
+    "bay_slots": 0
+  },
+  {
+    "id": "carrier_mk1",
+    "name": "Ironwing Carrier",
+    "class": "carrier",
+    "rarity": "uncommon",
+    "description": "A heavy assault carrier bristling with turrets. Deploys drone swarms and fighter escorts. Very hard to kill.",
+    "max_hull": 1400,
+    "max_shield": 600,
+    "base_speed": 55,
+    "base_evasion": 0.03,
+    "fuel_capacity": 280,
+    "crew_slots": 20,
+    "free_module_slots": 8,
+    "hardpoint_slots": {
+      "small": 4,
+      "medium": 4,
+      "large": 3
+    },
+    "hull_type": "heavy",
+    "is_carrier": true,
+    "carrier_turret_count": 4,
+    "carrier_drone_count": 3,
+    "carrier_escort_count": 2,
+    "quirks": [
+      "Drone Overload \u2014 deploys 3 combat drones on engage",
+      "Turret Battery \u2014 4 independent point-defence turrets",
+      "Fighter Bay \u2014 launches 2 escort fighters when hull < 70%"
+    ],
+    "specialization_paths": {
+      "A": "drone_swarm",
+      "B": "troop_transport"
+    },
+    "contraband": false,
+    "price": 45000,
+    "drone_slots": 5,
+    "starter": false,
+    "bay_slots": 2
+  },
+  {
+    "id": "carrier_mk1_large",
+    "name": "Vanguard Command Carrier",
+    "class": "carrier",
+    "rarity": "rare",
+    "description": "Supercarrier \u2014 the most powerful vessel short of a dreadnought. Heals fleet, deploys drones, and carries a full fighter wing.",
+    "max_hull": 2200,
+    "max_shield": 1000,
+    "base_speed": 45,
+    "base_evasion": 0.02,
+    "fuel_capacity": 380,
+    "crew_slots": 30,
+    "free_module_slots": 10,
+    "hardpoint_slots": {
+      "small": 6,
+      "medium": 4,
+      "large": 4
+    },
+    "hull_type": "heavy",
+    "is_carrier": true,
+    "carrier_turret_count": 6,
+    "carrier_drone_count": 5,
+    "carrier_escort_count": 3,
+    "quirks": [
+      "Fleet Healer \u2014 heals all fleet ships by 2 HP/sec while on FOLLOW order",
+      "Heavy Turret Battery \u2014 6 heavy turrets with overlapping fire arcs",
+      "Full Fighter Wing \u2014 launches 3 escort fighters at combat start",
+      "Command Presence \u2014 +10% mission success chance for all fleet ships"
+    ],
+    "specialization_paths": {
+      "A": "fleet_support",
+      "B": "heavy_assault"
+    },
+    "contraband": false,
+    "price": 80000,
+    "drone_slots": 8,
+    "starter": false,
+    "bay_slots": 3
+  },
+  {
+    "id": "void_dreadnought",
+    "name": "The Void Reaper",
+    "class": "carrier",
+    "rarity": "secret",
+    "description": "An ancient alien dreadnought of unknown origin. Its hull whispers.",
+    "max_hull": 1200,
+    "max_shield": 800,
+    "base_speed": 110,
+    "base_evasion": 0.2,
+    "fuel_capacity": 999,
+    "crew_slots": 20,
+    "free_module_slots": 12,
+    "hardpoint_slots": {
+      "small": 6,
+      "medium": 6,
+      "large": 4
+    },
+    "hull_type": "adaptive",
+    "quirks": [
+      "Void Resonance \u2014 20% chance any incoming hit is absorbed and returned as damage",
+      "Ancient Core \u2014 crew morale never drops below 50 while aboard",
+      "Apex Predator \u2014 all enemy ships have -20% accuracy against this vessel"
+    ],
+    "lore": "Found drifting in the Graveyard Sector with no crew manifest. The Void Collective claims it predates their civilization.",
+    "specialization_paths": {
+      "A": "drone_swarm",
+      "B": "troop_transport"
+    },
+    "contraband": false,
+    "price": 0,
+    "drone_slots": 3,
+    "starter": false,
+    "bay_slots": 0
+  },
+  {
+    "id": "interceptor_mk1",
+    "name": "Stinger Interceptor",
+    "class": "interceptor",
+    "rarity": "common",
+    "description": "Blazing-fast glass cannon built purely for hit-and-run. Outmaneuvers everything but folds under sustained fire.",
+    "lore": "Used by scouts who need to be gone before the enemy can blink.",
+    "max_hull": 80,
+    "max_shield": 40,
+    "base_speed": 240,
+    "base_evasion": 0.25,
+    "fuel_capacity": 80,
+    "crew_slots": 2,
+    "free_module_slots": 2,
+    "hardpoint_slots": {
+      "small": 3,
+      "medium": 0,
+      "large": 0
+    },
+    "hull_type": "light",
+    "drone_slots": 0,
+    "quirks": [
+      "Afterburner \u2014 speed burst +60 for 4 s once per fight"
+    ],
+    "specialization_paths": {
+      "A": "fast_attack",
+      "B": "stealth_run"
+    },
+    "contraband": false,
+    "price": 600,
+    "starter": true,
+    "bay_slots": 0
+  },
+  {
+    "id": "gunship_mk1",
+    "name": "Ironjaw Gunship",
+    "class": "gunship",
+    "rarity": "common",
+    "description": "A flying weapons platform. Slow and not much to look at, but every inch is bristling with guns.",
+    "lore": "Pirates who want to win by simply having more firepower.",
+    "max_hull": 160,
+    "max_shield": 70,
+    "base_speed": 120,
+    "base_evasion": 0.05,
+    "fuel_capacity": 110,
+    "crew_slots": 4,
+    "free_module_slots": 2,
+    "hardpoint_slots": {
+      "small": 3,
+      "medium": 2,
+      "large": 1
+    },
+    "hull_type": "medium",
+    "drone_slots": 1,
+    "quirks": [
+      "Heavy Ordinance \u2014 large hardpoint damage +20%"
+    ],
+    "specialization_paths": {
+      "A": "heavy_gunship",
+      "B": "siege_breaker"
+    },
+    "contraband": false,
+    "price": 1400,
+    "starter": true,
+    "bay_slots": 0
+  },
+  {
+    "id": "scout_ship",
+    "name": "Wraith Scout",
+    "class": "scout",
+    "rarity": "common",
+    "description": "Ultra-light recon vessel. Tiny signature, huge sensor suite. Reveals enemy positions before they see you.",
+    "lore": "Information is the deadliest weapon.",
+    "max_hull": 70,
+    "max_shield": 30,
+    "base_speed": 220,
+    "base_evasion": 0.28,
+    "fuel_capacity": 150,
+    "crew_slots": 2,
+    "free_module_slots": 3,
+    "hardpoint_slots": {
+      "small": 2,
+      "medium": 0,
+      "large": 0
+    },
+    "hull_type": "light",
+    "drone_slots": 3,
+    "quirks": [
+      "Sensor Suite \u2014 extends minimap radar by 300 px",
+      "Ghost Mode \u2014 20% chance enemies lose target lock"
+    ],
+    "specialization_paths": {
+      "A": "recon",
+      "B": "stealth_run"
+    },
+    "contraband": false,
+    "price": 700,
+    "starter": true,
+    "bay_slots": 0
+  },
+  {
+    "id": "destroyer_mk1",
+    "name": "Hammerfall Destroyer",
+    "class": "destroyer",
+    "rarity": "uncommon",
+    "description": "Purpose-built warship. Thick armour, heavy forward guns, and a ram prow that doubles as a weapon.",
+    "lore": "When subtlety fails, send a Destroyer.",
+    "max_hull": 340,
+    "max_shield": 120,
+    "base_speed": 110,
+    "base_evasion": 0.06,
+    "fuel_capacity": 160,
+    "crew_slots": 8,
+    "free_module_slots": 3,
+    "hardpoint_slots": {
+      "small": 2,
+      "medium": 3,
+      "large": 2
+    },
+    "hull_type": "heavy",
+    "drone_slots": 2,
+    "quirks": [
+      "Ram Prow \u2014 15% bonus damage when closing distance at high speed",
+      "Damage Control \u2014 hull repair rate +2 HP/s in combat"
+    ],
+    "specialization_paths": {
+      "A": "heavy_gunship",
+      "B": "armored_tank"
+    },
+    "contraband": false,
+    "price": 4500,
+    "starter": false,
+    "bay_slots": 0
+  },
+  {
+    "id": "stealth_corvette",
+    "name": "Shadowfang",
+    "class": "stealth",
+    "rarity": "rare",
+    "description": "A cloaking corvette that strikes from shadows. Low visible profile; enemies get -30% accuracy against it.",
+    "lore": "Nobody sees it until the hull is already breached.",
+    "max_hull": 140,
+    "max_shield": 100,
+    "base_speed": 170,
+    "base_evasion": 0.22,
+    "fuel_capacity": 120,
+    "crew_slots": 4,
+    "free_module_slots": 4,
+    "hardpoint_slots": {
+      "small": 2,
+      "medium": 2,
+      "large": 1
+    },
+    "hull_type": "adaptive",
+    "drone_slots": 2,
+    "quirks": [
+      "Cloak Drive \u2014 8 s stealth burst, 45 s cooldown",
+      "Precision Targeting \u2014 first shot from stealth always crits"
+    ],
+    "specialization_paths": {
+      "A": "stealth_run",
+      "B": "boarding_specialist"
+    },
+    "contraband": false,
+    "price": 12000,
+    "starter": false,
+    "bay_slots": 0
+  },
+  {
+    "id": "mining_barge",
+    "name": "Orebreaker Barge",
+    "class": "mining_barge",
+    "rarity": "common",
+    "description": "Industrial mining vessel. Poor in a fight, but strip-mines asteroids in seconds and hauls enormous cargo.",
+    "lore": "The richest pirates aren't always the best fighters.",
+    "max_hull": 250,
+    "max_shield": 50,
+    "base_speed": 70,
+    "base_evasion": 0.02,
+    "fuel_capacity": 220,
+    "crew_slots": 5,
+    "free_module_slots": 5,
+    "hardpoint_slots": {
+      "small": 1,
+      "medium": 1,
+      "large": 0
+    },
+    "hull_type": "heavy",
+    "drone_slots": 4,
+    "quirks": [
+      "Deep Drill \u2014 asteroid loot doubled",
+      "Cargo King \u2014 carries 3x normal cargo capacity"
+    ],
+    "specialization_paths": {
+      "A": "smuggler",
+      "B": "armored_tank"
+    },
+    "contraband": false,
+    "price": 2000,
+    "starter": true,
+    "bay_slots": 0
+  },
+  {
+    "id": "assault_transport",
+    "name": "Ironclad Transport",
+    "class": "assault_transport",
+    "rarity": "uncommon",
+    "description": "Armoured troop carrier with massive boarding capacity. Weak guns but takes a punch and delivers a crew.",
+    "lore": "The real weapon is the marines packed inside.",
+    "max_hull": 300,
+    "max_shield": 90,
+    "base_speed": 100,
+    "base_evasion": 0.04,
+    "fuel_capacity": 180,
+    "crew_slots": 12,
+    "free_module_slots": 3,
+    "hardpoint_slots": {
+      "small": 2,
+      "medium": 1,
+      "large": 0
+    },
+    "hull_type": "heavy",
+    "drone_slots": 2,
+    "quirks": [
+      "Boarding Specialist \u2014 boarding crew size +4",
+      "Marine Garrison \u2014 crew combat stat +2 while on this ship"
+    ],
+    "specialization_paths": {
+      "A": "boarding_specialist",
+      "B": "troop_transport"
+    },
+    "contraband": false,
+    "price": 5500,
+    "starter": false,
+    "bay_slots": 1
+  },
+  {
+    "id": "battlecruiser_mk1",
+    "name": "Warbringer",
+    "class": "battlecruiser",
+    "rarity": "rare",
+    "description": "A capital-class warship. The heaviest vessel you can fly solo. Massive guns, thick armour, slow as space itself.",
+    "lore": "When a Warbringer shows up, everyone else leaves.",
+    "max_hull": 800,
+    "max_shield": 350,
+    "base_speed": 65,
+    "base_evasion": 0.03,
+    "fuel_capacity": 300,
+    "crew_slots": 15,
+    "free_module_slots": 6,
+    "hardpoint_slots": {
+      "small": 3,
+      "medium": 4,
+      "large": 3
+    },
+    "hull_type": "heavy",
+    "drone_slots": 4,
+    "quirks": [
+      "Capital Guns \u2014 large hardpoint shots pierce shields",
+      "Thick Hide \u2014 hull damage reduced 15%",
+      "Command Bridge \u2014 fleet ships get +5% combat stats"
+    ],
+    "specialization_paths": {
+      "A": "heavy_assault",
+      "B": "fleet_support"
+    },
+    "contraband": false,
+    "price": 35000,
+    "starter": false,
+    "bay_slots": 0
+  },
+  {
+    "id": "pirate_carrier",
+    "name": "Marauder Carrier",
+    "class": "pirate_carrier",
+    "rarity": "rare",
+    "description": "A converted capital carrier bristling with turrets, drone bays, and a full fighter bay. Slow and unmistakable, but when its bay doors open the battle changes.",
+    "lore": "They called it a city with guns. The crew called it home.",
+    "max_hull": 1800,
+    "max_shield": 700,
+    "base_speed": 50,
+    "base_evasion": 0.02,
+    "fuel_capacity": 400,
+    "crew_slots": 25,
+    "free_module_slots": 10,
+    "hardpoint_slots": {
+      "small": 5,
+      "medium": 4,
+      "large": 3
+    },
+    "hull_type": "heavy",
+    "drone_slots": 6,
+    "bay_slots": 4,
+    "is_carrier": true,
+    "carrier_turret_count": 6,
+    "carrier_drone_count": 4,
+    "carrier_escort_count": 0,
+    "bay_launch_hull_pct": 0.25,
+    "quirks": [
+      "Bay Doors \u2014 launches 1 docked ship each time hull drops 25%",
+      "Turret Battery \u2014 6 independent turrets fire simultaneously",
+      "Drone Overload \u2014 4 combat drones deployed every 12 s",
+      "Capital Armour \u2014 hull damage reduced 12%",
+      "Command Aura \u2014 all launched ships get +10% damage and speed"
+    ],
+    "specialization_paths": {
+      "A": "drone_swarm",
+      "B": "fleet_support"
+    },
+    "contraband": false,
+    "price": 30000,
+    "starter": false
+  }
+]

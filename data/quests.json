@@ -1,0 +1,96 @@
+{
+  "story_quests": [
+    {
+      "id": "sq_01",
+      "title": "First Blood",
+      "description": "Prove yourself by destroying your first enemy ship in sector space.",
+      "objectives": [{"type": "kill_ships", "count": 1, "target": "any"}],
+      "rewards": {"credits": 200, "progression_points": 5, "items": []},
+      "unlocks_next": "sq_02",
+      "faction_rep_changes": {}
+    },
+    {
+      "id": "sq_02",
+      "title": "Claim Your Ground",
+      "description": "Find and claim the derelict asteroid station that will become your home base.",
+      "objectives": [{"type": "visit_sector", "sector_id": "derelict_field"}],
+      "rewards": {"credits": 0, "progression_points": 10, "items": [], "unlocks": "home_base"},
+      "unlocks_next": "sq_03",
+      "faction_rep_changes": {}
+    },
+    {
+      "id": "sq_03",
+      "title": "The Rival Appears",
+      "description": "A signal from Captain Dread — your rival. They've been watching. Hunt them down... or run.",
+      "objectives": [{"type": "encounter_rival", "rival_id": "captain_dread"}],
+      "rewards": {"credits": 500, "progression_points": 15, "items": []},
+      "unlocks_next": "sq_04",
+      "faction_rep_changes": {"space_pirates": 10}
+    },
+    {
+      "id": "sq_04",
+      "title": "The Graveyard Calls",
+      "description": "Rumors of ancient tech in the Ship Graveyard. Get there before Dread does.",
+      "objectives": [{"type": "visit_sector", "sector_id": "ship_graveyard"}],
+      "rewards": {"credits": 1000, "progression_points": 20, "items": ["emp_cannon"]},
+      "unlocks_next": "sq_05",
+      "faction_rep_changes": {}
+    },
+    {
+      "id": "sq_05",
+      "title": "The Sovereign's Warning",
+      "description": "The Void Collective sends a message. Something is coming from the deep sectors.",
+      "objectives": [{"type": "visit_nation", "nation_id": "void_collective"}],
+      "rewards": {"credits": 2000, "progression_points": 30, "items": []},
+      "unlocks_next": "sq_final",
+      "faction_rep_changes": {"void_collective": 20}
+    },
+    {
+      "id": "sq_final",
+      "title": "End of the Line",
+      "description": "Captain Dread has allied with the deep sector threat. One final battle.",
+      "objectives": [
+        {"type": "defeat_boss", "boss_id": "captain_dread_final"},
+        {"type": "defeat_boss", "boss_id": "the_sovereign"}
+      ],
+      "rewards": {"credits": 99999, "progression_points": 100, "items": ["void_dreadnought"]},
+      "unlocks_next": null,
+      "triggers_ending": true,
+      "faction_rep_changes": {}
+    }
+  ],
+  "side_quest_templates": [
+    {
+      "id": "sq_rescue",
+      "title": "Rescue Mission",
+      "description": "A crew member's family is being held by {faction} ships in {sector}.",
+      "type": "rescue",
+      "objectives": [{"type": "defeat_ships", "count": 3, "faction": "{faction}"}, {"type": "collect_item", "item": "hostage_pod"}],
+      "reward_range": {"credits": [300, 1500], "items": ["crew_random"]}
+    },
+    {
+      "id": "sq_delivery",
+      "title": "Cargo Run",
+      "description": "Deliver {cargo} to the station in {sector}. No questions asked.",
+      "type": "delivery",
+      "objectives": [{"type": "deliver_cargo", "cargo": "{cargo}", "destination": "{sector}"}],
+      "reward_range": {"credits": [500, 3000], "items": []}
+    },
+    {
+      "id": "sq_bounty",
+      "title": "Bounty: {target_name}",
+      "description": "Bring in {target_name}, dead or alive. Last seen in {sector}.",
+      "type": "bounty",
+      "objectives": [{"type": "kill_named", "target": "{target_name}"}],
+      "reward_range": {"credits": [1000, 8000], "items": ["weapon_random"]}
+    },
+    {
+      "id": "sq_escort",
+      "title": "Escort Contract",
+      "description": "Escort the {ship_name} through {sector} to safety.",
+      "type": "escort",
+      "objectives": [{"type": "escort_ship", "ship": "{ship_name}", "destination": "{sector}"}],
+      "reward_range": {"credits": [800, 4000], "items": []}
+    }
+  ]
+}

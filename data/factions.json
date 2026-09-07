@@ -1,0 +1,130 @@
+{
+  "factions": [
+    {
+      "id": "space_pirates",
+      "name": "Space Pirates",
+      "description": "Loose confederation of raiders and freebooters. Your people — mostly.",
+      "color": [220, 60, 60],
+      "starting_rep": 20,
+      "rep_thresholds": {"hostile": -50, "neutral": 0, "friendly": 40, "allied": 80},
+      "exclusive_items": ["laser_beam", "fighter_elite"],
+      "enemy_of": ["military"],
+      "ally_of": ["scavengers"]
+    },
+    {
+      "id": "merchant_guild",
+      "name": "Merchant Guild",
+      "description": "Wealthy traders who control commerce lanes. Rob them, pay the price.",
+      "color": [255, 200, 40],
+      "starting_rep": 0,
+      "rep_thresholds": {"hostile": -30, "neutral": 0, "friendly": 50, "allied": 90},
+      "exclusive_items": ["shadow_runner", "crew_engineer_rare"],
+      "enemy_of": ["space_pirates"],
+      "ally_of": ["terran_compact"]
+    },
+    {
+      "id": "military",
+      "name": "Military",
+      "description": "The law. Well-armed, well-funded, and very unhappy with you.",
+      "color": [60, 120, 220],
+      "starting_rep": -10,
+      "rep_thresholds": {"hostile": -20, "neutral": 10, "friendly": 60, "allied": 100},
+      "exclusive_items": ["railgun_basic", "crew_combat_common"],
+      "enemy_of": ["space_pirates", "scavengers"],
+      "ally_of": ["terran_compact", "merchant_guild"]
+    },
+    {
+      "id": "scavengers",
+      "name": "Scavengers",
+      "description": "Scrap merchants and opportunists. They'll deal with anyone.",
+      "color": [160, 120, 60],
+      "starting_rep": 10,
+      "rep_thresholds": {"hostile": -60, "neutral": 0, "friendly": 30, "allied": 70},
+      "exclusive_items": ["flak_cannon", "freighter_mk1"],
+      "enemy_of": ["military"],
+      "ally_of": ["space_pirates", "free_colonies"]
+    },
+    {
+      "id": "secret_faction",
+      "name": "???",
+      "description": "Something older than the nations. It has been watching.",
+      "color": [180, 0, 220],
+      "starting_rep": 0,
+      "rep_thresholds": {"hostile": -100, "neutral": 0, "friendly": 50, "allied": 100},
+      "exclusive_items": ["void_dreadnought", "the_whisper", "crew_combat_secret"],
+      "enemy_of": [],
+      "ally_of": [],
+      "hidden": true,
+      "discover_codex_count": 15,
+      "join_locks_all_factions": true,
+      "lore": "The Void Collective knows of them. The Technocracy denies their existence. Three captains who found their signal were never heard from again."
+    }
+  ],
+  "nations": [
+    {
+      "id": "terran_compact",
+      "name": "Terran Compact",
+      "description": "Human government and military hub. Law-abiding, heavily armed.",
+      "color": [60, 120, 220],
+      "specialty": "military",
+      "safe_sectors": ["compact_core", "compact_border"],
+      "starting_rep": 0,
+      "rep_thresholds": {"hostile": -40, "neutral": 0, "friendly": 40, "allied": 80},
+      "nation_upgrade": "Compact Alliance — military ships cost 15% less",
+      "signature_boss": "Admiral Voss",
+      "exclusive_items": ["missile_nuke", "crew_pilot_rare"]
+    },
+    {
+      "id": "merchant_syndicate",
+      "name": "Merchant Syndicate",
+      "description": "Trade guilds and commerce barons. Money talks louder than guns here.",
+      "color": [255, 200, 40],
+      "specialty": "trade",
+      "safe_sectors": ["syndicate_hub", "trade_lanes"],
+      "starting_rep": 0,
+      "rep_thresholds": {"hostile": -40, "neutral": 0, "friendly": 40, "allied": 80},
+      "nation_upgrade": "Syndicate Rates — sell prices +20% in all markets",
+      "signature_boss": "Magnate Selene Varro",
+      "exclusive_items": ["freighter_smuggler", "crew_engineer_rare"]
+    },
+    {
+      "id": "free_colonies",
+      "name": "Free Colonies",
+      "description": "Independent settlers. Scrappy, resourceful, and suspicious of outsiders.",
+      "color": [100, 180, 80],
+      "specialty": "salvage",
+      "safe_sectors": ["colony_alpha", "outer_rim"],
+      "starting_rep": 5,
+      "rep_thresholds": {"hostile": -40, "neutral": 0, "friendly": 35, "allied": 75},
+      "nation_upgrade": "Colony Network — patrol ships find 25% more resources",
+      "signature_boss": "The Colony Council",
+      "exclusive_items": ["flak_cannon", "crew_mechanic_common"]
+    },
+    {
+      "id": "technocracy",
+      "name": "The Technocracy",
+      "description": "Advanced science and AI state. Drones, robots, cutting-edge tech.",
+      "color": [40, 200, 200],
+      "specialty": "technology",
+      "safe_sectors": ["tech_citadel", "research_ring"],
+      "starting_rep": 0,
+      "rep_thresholds": {"hostile": -40, "neutral": 0, "friendly": 40, "allied": 80},
+      "nation_upgrade": "Tech Integration — research lab upgrades 20% cheaper",
+      "signature_boss": "AXIOM-9 (rogue AI commander)",
+      "exclusive_items": ["emp_cannon", "crew_engineer_rare"]
+    },
+    {
+      "id": "void_collective",
+      "name": "Void Collective",
+      "description": "Mysterious, almost alien faction from the deep sectors. Ancient. Unknowable.",
+      "color": [160, 40, 200],
+      "specialty": "secrets",
+      "safe_sectors": ["void_nexus"],
+      "starting_rep": -5,
+      "rep_thresholds": {"hostile": -50, "neutral": 0, "friendly": 60, "allied": 100},
+      "nation_upgrade": "Void Attunement — secret item drop rate doubled",
+      "signature_boss": "The Sovereign",
+      "exclusive_items": ["void_dreadnought", "the_whisper"]
+    }
+  ]
+}
