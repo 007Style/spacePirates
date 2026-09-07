@@ -292,13 +292,40 @@ TRADE_NATIONS = [
 
 # ── Mercenary roster definitions ──────────────────────────────────────────────
 MERCENARY_ROSTER = [
-    {"name": "Sid the Gun",    "role": "Gunner",    "cost": 400, "combat": 12, "stat": "gunnery",  "rarity": "uncommon"},
-    {"name": "Raka",           "role": "Pilot",     "cost": 350, "combat": 7,  "stat": "piloting", "rarity": "common"},
-    {"name": "Iron Yasha",     "role": "Brawler",   "cost": 600, "combat": 18, "stat": "combat",   "rarity": "rare"},
-    {"name": "Dr. Vex",        "role": "Medic",     "cost": 300, "combat": 4,  "stat": "repair",   "rarity": "common"},
-    {"name": "Ghost",          "role": "Smuggler",  "cost": 500, "combat": 9,  "stat": "evasion",  "rarity": "uncommon"},
-    {"name": "Mira Blackstar", "role": "Engineer",  "cost": 450, "combat": 6,  "stat": "engineering", "rarity": "uncommon"},
-    {"name": "The Judge",      "role": "Bounty Hunter", "cost": 800, "combat": 20, "stat": "combat", "rarity": "rare"},
+    {"name": "Sid the Gun",    "role": "Gunner",    "cost": 400, "combat": 12, "stat": "gunnery",     "rarity": "uncommon",
+     "desc": "Former Navy sharpshooter. Never misses twice."},
+    {"name": "Raka",           "role": "Pilot",     "cost": 350, "combat": 7,  "stat": "piloting",    "rarity": "common",
+     "desc": "Asteroid-belt racer turned gun-for-hire."},
+    {"name": "Iron Yasha",     "role": "Brawler",   "cost": 600, "combat": 18, "stat": "combat",      "rarity": "rare",
+     "desc": "Six-foot cyborg with a grudge and a plasma fist."},
+    {"name": "Dr. Vex",        "role": "Medic",     "cost": 300, "combat": 4,  "stat": "repair",      "rarity": "common",
+     "desc": "Licensed in three systems. Unlicensed in four others."},
+    {"name": "Nyx",            "role": "Smuggler",  "cost": 500, "combat": 9,  "stat": "evasion",     "rarity": "uncommon",
+     "desc": "Knows every back-door in the sector. Slippery."},
+    {"name": "Mira Blackstar", "role": "Engineer",  "cost": 450, "combat": 6,  "stat": "engineering", "rarity": "uncommon",
+     "desc": "Fixes engines with whatever's around. Somehow it holds."},
+    {"name": "The Judge",      "role": "Bounty Hunter", "cost": 800, "combat": 20, "stat": "combat",  "rarity": "rare",
+     "desc": "Wants dead. Accepts live. Prefers neither."},
+    {"name": "Wren Calo",      "role": "Hacker",    "cost": 650, "combat": 5,  "stat": "engineering", "rarity": "rare",
+     "desc": "Cracks enemy shields and ship systems in seconds."},
+    {"name": "Oryx",           "role": "Navigator", "cost": 420, "combat": 6,  "stat": "piloting",    "rarity": "uncommon",
+     "desc": "Charts hyperspace routes no one else dares to use."},
+]
+
+# ── Regular hireable crew (non-mercenary, cheaper, lower stats) ───────────────
+REGULAR_CREW_ROSTER = [
+    {"name": "Tam",    "role": "Gunner",    "cost": 180, "combat": 7,  "stat": "gunnery",     "rarity": "common",
+     "desc": "Decent shot. Reliable under pressure."},
+    {"name": "Kai",    "role": "Pilot",     "cost": 160, "combat": 5,  "stat": "piloting",    "rarity": "common",
+     "desc": "Can fly most ships. Prefers the fast ones."},
+    {"name": "Bren",   "role": "Engineer",  "cost": 170, "combat": 4,  "stat": "engineering", "rarity": "common",
+     "desc": "Keeps the engines running. Usually."},
+    {"name": "Sloane", "role": "Medic",     "cost": 150, "combat": 3,  "stat": "repair",      "rarity": "common",
+     "desc": "Patch jobs, stims, and a steady hand."},
+    {"name": "Ruck",   "role": "Brawler",   "cost": 200, "combat": 10, "stat": "combat",      "rarity": "common",
+     "desc": "Big. Not too bright. Very effective."},
+    {"name": "Dex",    "role": "Navigator", "cost": 175, "combat": 4,  "stat": "piloting",    "rarity": "common",
+     "desc": "Good with charts and a quiet shift."},
 ]
 
 # ── Side-quest definitions ────────────────────────────────────────────────────
@@ -470,6 +497,7 @@ class HomeBase:
         self._crew_selected: int | None = None    # index into _hired_crew
         self._crew_fire_rects: dict[int, pygame.Rect] = {}
         self._crew_train_rects: dict[int, pygame.Rect] = {}
+        self._crew_buy_rects:  dict[int, pygame.Rect] = {}   # regular crew hire buttons
 
         # Repair shop state
         self._repair_ship_idx: int | None = None
@@ -611,6 +639,20 @@ class HomeBase:
         self.spend_all(cost)
         self._hired_crew.append(dict(merc))
         return {"ok": True, "name": merc["name"]}
+
+    def hire_crew(self, crew_index: int) -> dict:
+        """Hire a regular (non-mercenary) crew member from REGULAR_CREW_ROSTER."""
+        if not self._cantina_built():
+            return {"ok": False, "reason": "Build the Cantina first"}
+        if crew_index < 0 or crew_index >= len(REGULAR_CREW_ROSTER):
+            return {"ok": False, "reason": "Invalid crew index"}
+        member = REGULAR_CREW_ROSTER[crew_index]
+        cost = {"credits": member["cost"]}
+        if not self.can_afford(cost):
+            return {"ok": False, "reason": f"Need {member['cost']} credits"}
+        self.spend_all(cost)
+        self._hired_crew.append(dict(member))
+        return {"ok": True, "name": member["name"]}
 
     @property
     def quest_level(self) -> int:
@@ -1005,6 +1047,12 @@ class HomeBase:
                                     self._push_note("Select an available ship first!", DANGER)
                     return  # absorb all clicks while popup open
 
+                for idx, btn_rect in getattr(self, "_crew_buy_rects", {}).items():
+                    if btn_rect.collidepoint(mx, my):
+                        res = self.hire_crew(idx)
+                        msg = f"Hired {res['name']}!" if res["ok"] else f"Cannot hire: {res['reason']}"
+                        self._push_note(msg, SUCCESS if res["ok"] else DANGER)
+                        return f"hire_crew:{idx}"
                 for idx, btn_rect in getattr(self, "_merc_hire_rects", {}).items():
                     if btn_rect.collidepoint(mx, my):
                         res = self.hire_mercenary(idx)
@@ -1486,6 +1534,7 @@ class HomeBase:
 
         self._merc_hire_rects:  dict[int, pygame.Rect] = {}
         self._quest_start_rects: dict[str, pygame.Rect] = {}
+        self._crew_buy_rects:   dict[int, pygame.Rect] = {}
 
         # ── Section: Hired crew ───────────────────────────────────────────────
         sec_font = pygame.font.SysFont("monospace", 13, bold=True)
@@ -1496,18 +1545,53 @@ class HomeBase:
         surface.blit(hired_hdr, (x0, y)); y += 18
 
         if self._hired_crew:
-            for crew_member in self._hired_crew[:5]:
+            for crew_member in self._hired_crew[:6]:
                 rc = {"common": TEXT_MUTED, "uncommon": SUCCESS,
                       "rare": (60, 120, 255), "epic": (160, 60, 220)}.get(
                     crew_member.get("rarity", "common"), TEXT_MUTED)
+                role_icon = {
+                    "Pilot": "✈", "Gunner": "🎯", "Engineer": "⚙",
+                    "Medic": "+", "Brawler": "⚔", "Navigator": "⬡",
+                    "Hacker": "⌨", "Smuggler": "◈",
+                }.get(crew_member.get("role", "?"), "·")
+                stat_key = crew_member.get("stat", "combat")
+                stat_val = crew_member.get(stat_key, crew_member.get("combat", 0))
                 line = sm_font.render(
-                    f"  {crew_member['name'][:16]:<16}  [{crew_member['role']}]"
-                    f"  Combat:{crew_member['combat']}",
+                    f"  {role_icon} {crew_member['name'][:14]:<14}  [{crew_member['role'][:9]}]"
+                    f"  {stat_key[:3].upper()}:{stat_val}",
                     True, rc)
                 surface.blit(line, (x0, y)); y += 14
         else:
-            none_t = sm_font.render("  No crew hired yet.", True, TEXT_MUTED)
+            none_t = sm_font.render("  No crew hired yet. Buy crew or hire a mercenary below.", True, TEXT_MUTED)
             surface.blit(none_t, (x0, y)); y += 14
+
+        y += 6
+        pygame.draw.line(surface, BORDER, (x0, y), (x0 + w, y)); y += 8
+
+        # ── Section: BUY CREW (regular crew, always available at Cantina) ─────
+        crew_hdr = sec_font.render("BUY CREW  (regular, Cantina Lv1+)", True, (180, 220, 255))
+        surface.blit(crew_hdr, (x0, y)); y += 18
+
+        btn_h = 22
+        for reg_idx, member in enumerate(REGULAR_CREW_ROSTER):
+            if y > sh - 180:
+                break
+            can = self.resources.get("credits", 0) >= member["cost"]
+            row_r = pygame.Rect(x0, y, w - 80, btn_h)
+            pygame.draw.rect(surface, PANEL_BG, row_r)
+            pygame.draw.rect(surface, BORDER, row_r, 1)
+            info = sm_font.render(
+                f"{member['name']:<10}  {member['role']:<12}  {member['desc'][:28]}",
+                True, TEXT_MAIN if can else TEXT_MUTED)
+            surface.blit(info, (x0 + 4, y + (btn_h - info.get_height()) // 2))
+            hire_r2 = pygame.Rect(x0 + w - 76, y, 74, btn_h)
+            pygame.draw.rect(surface, (10, 40, 10) if can else (30, 15, 15), hire_r2)
+            pygame.draw.rect(surface, SUCCESS if can else DANGER, hire_r2, 1)
+            hire_lbl2 = sm_font.render(f"${member['cost']}", True, SUCCESS if can else DANGER)
+            surface.blit(hire_lbl2, (hire_r2.centerx - hire_lbl2.get_width() // 2,
+                                     hire_r2.centery - hire_lbl2.get_height() // 2))
+            self._crew_buy_rects[reg_idx] = hire_r2
+            y += btn_h + 2
 
         y += 6
         pygame.draw.line(surface, BORDER, (x0, y), (x0 + w, y)); y += 8
@@ -1515,7 +1599,7 @@ class HomeBase:
         # ── Section: Available Mercenaries ───────────────────────────────────
         lvl_cap = cantina.level
         merc_hdr = sec_font.render(
-            f"HIRE MERCENARIES  (Cantina Lv{lvl_cap})", True, ACCENT)
+            f"HIRE MERCENARIES  (Cantina Lv{lvl_cap} — elite crew)", True, (255, 200, 80))
         surface.blit(merc_hdr, (x0, y)); y += 18
 
         # Filter mercs by cantina level: lv1→common only, lv2→+uncommon, lv3→+rare
@@ -1523,17 +1607,31 @@ class HomeBase:
         allowed = rarity_unlock.get(lvl_cap, {"common"})
         available_mercs = [m for m in MERCENARY_ROSTER if m["rarity"] in allowed]
 
-        btn_h = 22
-        for idx, merc in enumerate(available_mercs[:6]):
+        btn_h = 26
+        for idx, merc in enumerate(available_mercs[:9]):
+            if y > sh - 120:
+                break
             rc = {"common": TEXT_MUTED, "uncommon": SUCCESS,
-                  "rare": (60, 120, 255)}.get(merc["rarity"], TEXT_MUTED)
+                  "rare": (60, 120, 255), "epic": (180, 80, 240)}.get(merc["rarity"], TEXT_MUTED)
             can = self.resources.get("credits", 0) >= merc["cost"]
             row_r = pygame.Rect(x0, y, w - 80, btn_h)
-            pygame.draw.rect(surface, PANEL_BG, row_r)
-            info = sm_font.render(
-                f"{merc['name']:<14}  {merc['role']:<12}  Cmbt:{merc['combat']}",
+            # Two-tone row bg
+            pygame.draw.rect(surface, (12, 20, 30) if idx % 2 == 0 else PANEL_BG, row_r)
+            pygame.draw.rect(surface, BORDER, row_r, 1)
+            # Rarity stripe on left
+            pygame.draw.rect(surface, rc, pygame.Rect(x0, y, 3, btn_h))
+            name_t = sm_font.render(
+                f" {merc['name'][:13]:<13}  [{merc['role'][:9]}]  Cmbt:{merc['combat']}",
                 True, rc)
-            surface.blit(info, (x0 + 4, y + (btn_h - info.get_height()) // 2))
+            desc_t = sm_font.render(
+                f"   {merc.get('desc', '')[:34]}",
+                True, TEXT_MUTED)
+            # Stack name + desc in the row (2 lines, smaller)
+            surface.blit(name_t, (x0 + 6, y + 2))
+            if btn_h >= 24:
+                surface.blit(desc_t, (x0 + 6, y + 14))
+            else:
+                surface.blit(name_t, (x0 + 4, y + (btn_h - name_t.get_height()) // 2))
 
             # Hire button
             hire_r = pygame.Rect(x0 + w - 76, y, 74, btn_h)

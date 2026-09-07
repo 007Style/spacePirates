@@ -527,11 +527,17 @@ class SpaceDebris:
 
     DEBRIS_TYPES = [
         # (label, color_base, loot_type, loot_min, loot_max, shape)
-        ("hull plate",   (80, 90, 100),  "metal",   8,  20, "rect"),
-        ("fuel drum",    (120, 160, 80), "fuel",    5,  15, "circle"),
-        ("cargo pod",    (140, 110, 60), "credits", 20, 60, "hexagon"),
-        ("scrap pile",   (90, 80, 75),   "metal",   15, 35, "jagged"),
-        ("supply crate", (60, 100, 140), "supplies", 5, 12, "rect"),
+        ("hull plate",   (80,  90, 100), "metal",    8,  20, "rect"),
+        ("fuel drum",    (120, 160, 80), "fuel",     5,  15, "circle"),
+        ("cargo pod",    (140, 110, 60), "credits", 20,  60, "hexagon"),
+        ("scrap pile",   (90,  80,  75), "metal",   15,  35, "jagged"),
+        ("supply crate", (60, 100, 140), "supplies", 5,  12, "rect"),
+        # New debris types
+        ("ammo box",     (160, 120,  50), "supplies", 8,  18, "rect"),
+        ("engine pod",   (60,  80, 120), "metal",   20,  45, "circle"),
+        ("data core",    (180, 60, 200), "credits", 40, 120, "hexagon"),
+        ("torn hull",    (70,  60,  60), "metal",   10,  30, "jagged"),
+        ("coolant tank", (40, 180, 160), "fuel",    10,  25, "circle"),
     ]
 
     def __init__(self, seed: int = 0, count: int = 6):
@@ -655,14 +661,25 @@ class SpaceDebris:
                 pygame.draw.polygon(surface, dark, pts)
                 pygame.draw.polygon(surface, col, pts, 1)
 
-            # ── loot icon (tiny letter above) ────────────────────────────
+            # ── special glow for valuable junk (data core) ───────────────
+            if lbl == "data core":
+                halo2 = pygame.Surface((sz * 6, sz * 6), pygame.SRCALPHA)
+                pygame.draw.circle(halo2, (180, 60, 200, 30), (sz * 3, sz * 3), sz * 3)
+                surface.blit(halo2, (sx - sz * 3, sy - sz * 3))
+
+            # ── loot label + type when nearby ─────────────────────────────
             if near:
                 try:
                     fnt = pygame.font.SysFont("monospace", 9)
-                    loot_str = {"metal": "⛏M", "fuel": "⛽F",
-                                "credits": "$C", "supplies": "+S"}.get(rtype, rtype[:2])
-                    lt = fnt.render(loot_str, True, (150, 255, 150))
-                    surface.blit(lt, (sx - lt.get_width() // 2, sy - sz - 14))
+                    loot_icons = {"metal": "M", "fuel": "F", "credits": "$", "supplies": "S"}
+                    icon = loot_icons.get(rtype, "?")
+                    loot_str = f"[{icon}] {lbl[:9]}"
+                    lt = fnt.render(loot_str, True, (190, 255, 190))
+                    # Dark backdrop for legibility
+                    bk = pygame.Surface((lt.get_width() + 4, lt.get_height()), pygame.SRCALPHA)
+                    bk.fill((0, 0, 0, 100))
+                    surface.blit(bk, (sx - lt.get_width() // 2 - 2, sy - sz - 16))
+                    surface.blit(lt, (sx - lt.get_width() // 2, sy - sz - 15))
                 except Exception:
                     pass
 
@@ -1987,6 +2004,50 @@ class SpaceCombat:
             rotated = pygame.transform.rotate(base, -ship.angle)
             sx = int(ship.x + ox) - rotated.get_width()  // 2
             sy = int(ship.y + oy) - rotated.get_height() // 2
+
+            # ── Engine exhaust glow (drawn behind sprite) ─────────────────
+            moving = (ship.vx ** 2 + ship.vy ** 2) > 4
+            if moving or True:   # always show a resting idle glow
+                ang_rad = math.radians(ship.angle + 180)   # behind the ship
+                sc_class = getattr(ship, "ship_class", "fighter")
+                # Engine glow size by class
+                eng_r = {"fighter": 7, "interceptor": 9, "corvette": 9,
+                         "gunship": 11, "destroyer": 12, "battlecruiser": 16,
+                         "carrier": 14, "pirate_carrier": 16, "dreadnought": 15,
+                         "scout": 6, "stealth": 5, "freighter": 9,
+                         "mining_barge": 8, "assault_transport": 10}.get(sc_class, 7)
+                num_eng = {"battlecruiser": 6, "pirate_carrier": 6, "carrier": 4,
+                           "dreadnought": 4, "destroyer": 3, "assault_transport": 4,
+                           "freighter": 2, "corvette": 2}.get(sc_class, 1)
+                # Engine colour: player=blue, ally=teal, enemy=orange/red
+                if ship is self.player_ship:
+                    ecol = (80, 160, 255)
+                elif ship in all_allied:
+                    ecol = (60, 220, 180)
+                elif sc_class == "pirate_carrier":
+                    ecol = (255, 100, 30)
+                else:
+                    ecol = (255, 140, 40)
+
+                half_w = base.get_width() // 2
+                eng_ox = half_w - 4  # engine offset from center
+                spread = 6 if num_eng <= 2 else 10
+                for ei in range(num_eng):
+                    t = (ei / max(num_eng - 1, 1) - 0.5) * spread if num_eng > 1 else 0
+                    perp_rad = ang_rad + math.pi / 2
+                    ex = ship.x + ox + math.cos(ang_rad) * eng_ox + math.cos(perp_rad) * t
+                    ey = ship.y + oy + math.sin(ang_rad) * eng_ox + math.sin(perp_rad) * t
+                    sz_m = eng_r + (4 if moving else 1)
+                    gsurf = pygame.Surface((sz_m * 4, sz_m * 4), pygame.SRCALPHA)
+                    # Outer halo
+                    pygame.draw.circle(gsurf, (*ecol, 18), (sz_m * 2, sz_m * 2), sz_m * 2)
+                    # Inner bright core
+                    pygame.draw.circle(gsurf, (*ecol, 90), (sz_m * 2, sz_m * 2), sz_m)
+                    # Brightest centre dot
+                    pygame.draw.circle(gsurf, (255, 255, 255, 120), (sz_m * 2, sz_m * 2), max(2, sz_m // 3))
+                    surface.blit(gsurf, (int(ex) - sz_m * 2, int(ey) - sz_m * 2),
+                                 special_flags=pygame.BLEND_ALPHA_SDL2)
+
             surface.blit(rotated, (sx, sy))
             # Friendly ring for allied ships
             if ship in all_allied:

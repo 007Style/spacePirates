@@ -848,7 +848,31 @@ class CrewManagementMenu:
             # AUTO toggles
             for station, btn in self._auto_rects.items():
                 if btn.collidepoint(lx, ly):
+                    # ── gun_turret AUTO has two prerequisites ─────────────────
+                    # 1. cockpit AUTO must already be ON
+                    # 2. the assigned gunner must be level 3 or higher
+                    if station == "gun_turret" and not self._auto.get("gun_turret", False):
+                        # Attempting to turn gun_turret AUTO ON — check both gates
+                        if not self._auto.get("cockpit", False):
+                            # cockpit AUTO is off — block and surface reason
+                            self._gun_auto_deny = "Auto-Gun requires Auto-Pilot ON first"
+                            self._gun_auto_deny_ttl = 3.0
+                            return "gun_auto_denied:no_cockpit"
+                        # Check gunner level on the ship stored during draw
+                        gunner_crew = getattr(self, "_last_gun_turret_crew", None)
+                        gunner_lvl  = getattr(gunner_crew, "level", 0) if gunner_crew else 0
+                        if gunner_lvl < 3:
+                            req_name = gunner_crew.name if gunner_crew else "gunner"
+                            self._gun_auto_deny = (
+                                f"Auto-Gun needs Lv3+ gunner "
+                                f"({req_name} is Lv{gunner_lvl})" if gunner_crew
+                                else "No gunner assigned (need Lv3+)")
+                            self._gun_auto_deny_ttl = 3.0
+                            return "gun_auto_denied:low_level"
                     self._auto[station] = not self._auto[station]
+                    # If cockpit AUTO is turned OFF, also force gun_turret AUTO off
+                    if station == "cockpit" and not self._auto["cockpit"]:
+                        self._auto["gun_turret"] = False
                     return f"auto_toggle:{station}"
             if self._equip_rect and self._equip_rect.collidepoint(lx, ly):
                 ship.equip_best()
@@ -933,21 +957,85 @@ class CrewManagementMenu:
             stn_txt = self._font_sm.render(f"{lbl:<8} {crew_name}", True, crew_color)
             surface.blit(stn_txt, (x0 + 2, y + (ROW_H - stn_txt.get_height()) // 2))
 
+            # ── Store gun_turret crew reference so handle_event can read it ──
+            if station == "gun_turret":
+                self._last_gun_turret_crew = crew   # may be None
+
+            # ── Determine whether this AUTO button is locked ──────────────────
+            # gun_turret AUTO is locked (un-clickable to ON) when:
+            #   • cockpit AUTO is OFF, OR
+            #   • assigned gunner is below level 3
+            locked = False
+            lock_reason = ""
+            if station == "gun_turret" and not self._auto.get("gun_turret", False):
+                if not self._auto.get("cockpit", False):
+                    locked = True
+                    lock_reason = "needs Auto-Pilot"
+                elif (crew is None or getattr(crew, "level", 0) < 3):
+                    locked = True
+                    lvl = getattr(crew, "level", 0) if crew else 0
+                    lock_reason = f"Lv{lvl}/3 needed" if crew else "no gunner"
+
             # AUTO toggle button
             on = self._auto.get(station, False)
             abtn = pygame.Rect(auto_x, y, auto_btn_w, ROW_H)
-            self._auto_rects[station] = abtn
-            abg  = (15, 55, 15) if on else (55, 15, 15)
-            afg  = SUCCESS      if on else DANGER
-            pygame.draw.rect(surface, abg, abtn)
-            pygame.draw.rect(surface, afg, abtn, 1)
-            at = self._font_sm.render("ON" if on else "OFF", True, afg)
+            # Only register the click rect when the button is usable
+            if not locked:
+                self._auto_rects[station] = abtn
+            else:
+                # Remove from clickable rects so the lock is enforced even
+                # if handle_event's dict iteration fires before the gate check
+                self._auto_rects.pop(station, None)
+
+            if locked:
+                # Greyed-out locked appearance
+                abg = (30, 30, 30)
+                afg = (80, 80, 80)
+                pygame.draw.rect(surface, abg, abtn)
+                pygame.draw.rect(surface, afg, abtn, 1)
+                at = self._font_sm.render("🔒", True, afg)
+            elif on:
+                abg = (15, 55, 15)
+                afg = SUCCESS
+                pygame.draw.rect(surface, abg, abtn)
+                pygame.draw.rect(surface, afg, abtn, 1)
+                at = self._font_sm.render("ON", True, afg)
+            else:
+                abg = (55, 15, 15)
+                afg = DANGER
+                pygame.draw.rect(surface, abg, abtn)
+                pygame.draw.rect(surface, afg, abtn, 1)
+                at = self._font_sm.render("OFF", True, afg)
             surface.blit(at, (abtn.centerx - at.get_width() // 2,
                                abtn.centery - at.get_height() // 2))
+
+            # Show lock reason as tiny text beside the button when locked
+            if locked and lock_reason:
+                lr_surf = self._font_sm.render(lock_reason, True, (100, 80, 40))
+                surface.blit(lr_surf, (auto_x - lr_surf.get_width() - 4,
+                                        y + (ROW_H - lr_surf.get_height()) // 2))
+
             y += ROW_H + 1
 
         y += 4
         pygame.draw.line(surface, BORDER, (x0, y), (x0 + w, y)); y += 6
+
+        # ── Gun auto deny message (fades out after 3 s) ───────────────────────
+        deny_msg = getattr(self, "_gun_auto_deny", "")
+        deny_ttl = getattr(self, "_gun_auto_deny_ttl", 0.0)
+        if deny_msg and deny_ttl > 0:
+            # Tick timer — subtract one frame estimate (assume ~60 fps)
+            self._gun_auto_deny_ttl = max(0.0, deny_ttl - 1 / 60)
+            alpha = min(255, int(deny_ttl / 3.0 * 255))
+            dm_surf = self._font_sm.render(f"⚠ {deny_msg}", True, (255, 160, 40))
+            dm_bg   = pygame.Surface(
+                (dm_surf.get_width() + 10, dm_surf.get_height() + 6),
+                pygame.SRCALPHA)
+            dm_bg.fill((40, 20, 0, min(180, alpha)))
+            surface.blit(dm_bg, (x0, y))
+            dm_surf.set_alpha(alpha)
+            surface.blit(dm_surf, (x0 + 5, y + 3))
+            y += dm_bg.get_height() + 4
 
         # ── CREW ROSTER ───────────────────────────────────────────────────────
         title2 = self._font.render("CREW ROSTER", True, ACCENT)

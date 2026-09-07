@@ -414,43 +414,76 @@ class Ship(pygame.sprite.Sprite):
             fuse = [(w - 2, cy), (cx + 2, cy - 2), (6, cy - 1),
                     (6, cy + 1), (cx + 2, cy + 2)]
             pg.draw.polygon(surf, dark, fuse)
-            # Delta wing — razor thin
-            pg.draw.polygon(surf, color,
-                [(cx + 4, cy - 2), (cx - 10, 2), (2, cy), (cx - 4, cy - 2)])
-            pg.draw.polygon(surf, color,
-                [(cx + 4, cy + 2), (cx - 10, h - 2), (2, cy), (cx - 4, cy + 2)])
-            pg.draw.line(surf, light, (cx + 4, cy - 2), (cx - 10, 2), 1)
-            pg.draw.line(surf, light, (cx + 4, cy + 2), (cx - 10, h - 2), 1)
-            # Needle nose
+            pg.draw.polygon(surf, mid, fuse, 1)
+            # Swept delta wings — razor thin
+            wing_u = [(cx + 4, cy - 2), (cx - 12, 2), (2, cy), (cx - 4, cy - 2)]
+            wing_d = [(cx + 4, cy + 2), (cx - 12, h - 2), (2, cy), (cx - 4, cy + 2)]
+            pg.draw.polygon(surf, color, wing_u)
+            pg.draw.polygon(surf, color, wing_d)
+            pg.draw.line(surf, light, (cx + 4, cy - 2), (cx - 12, 2), 1)
+            pg.draw.line(surf, light, (cx + 4, cy + 2), (cx - 12, h - 2), 1)
+            # Needle nose — bright tip
             pg.draw.polygon(surf, trim, [(w - 2, cy), (cx + 2, cy - 2), (cx + 2, cy + 2)])
-            # Afterburner glow — extra bright
-            _glow(surf, (120, 180, 255), (5, cy), 5)
-            _glow(surf, (200, 120, 255), (4, cy), 3)
+            # Mid-wing sensor bumps
+            for bx_ in [cx - 2, cx - 8]:
+                pg.draw.circle(surf, mid, (bx_, cy - 3), 1)
+                pg.draw.circle(surf, mid, (bx_, cy + 3), 1)
+            # Twin engine nozzles (stacked vertically)
+            for ey in [cy - 3, cy + 1]:
+                eng = pg.Rect(2, ey, 6, 3)
+                pg.draw.rect(surf, dark, eng)
+                pg.draw.rect(surf, (50, 60, 90), eng, 1)
+            # Afterburner glows — dual afterburners
+            _glow(surf, (120, 180, 255), (5, cy - 1), 4)
+            _glow(surf, (120, 180, 255), (5, cy + 2), 4)
+            _glow(surf, (200, 120, 255), (4, cy), 2)   # central purple highlight
             # Cockpit slit
-            pg.draw.rect(surf, (40, 100, 200), pg.Rect(cx + 2, cy - 2, 10, 4))
+            pg.draw.rect(surf, (40, 100, 200), pg.Rect(cx + 4, cy - 2, 10, 4))
+            pg.draw.rect(surf, (120, 160, 255), pg.Rect(cx + 4, cy - 2, 10, 4), 1)
+            # Panel detail line
+            pg.draw.line(surf, mid, (cx - 4, cy), (cx + 8, cy), 1)
 
         elif sc == "scout":
-            # ── Wraith Scout — flat disc with sensor boom ─────────────────────
-            # Flat oval body
-            body_pts = []
+            # ── Wraith Scout — flat disc with sensor boom + side fins ─────────
             import math as _m
-            for i in range(16):
-                a = _m.radians(i * 22.5)
-                rx = int(w * 0.32 * _m.cos(a))
-                ry = int(h * 0.38 * _m.sin(a))
+            # Flat oval body (smooth polygon)
+            body_pts = []
+            for i in range(20):
+                a  = _m.radians(i * 18)
+                rx = int(w * 0.30 * _m.cos(a))
+                ry = int(h * 0.36 * _m.sin(a))
                 body_pts.append((cx + rx, cy + ry))
             pg.draw.polygon(surf, dark, body_pts)
             pg.draw.polygon(surf, mid, body_pts, 1)
-            # Sensor boom — forward spike
-            pg.draw.line(surf, light, (cx, cy), (w - 3, cy), 2)
-            pg.draw.circle(surf, light, (w - 3, cy), 2)
-            # Rear engine pod
-            eg = pg.Rect(2, cy - 3, 6, 6)
+            # Layered tinted body rings (depth effect)
+            inner_pts = [(cx + int(w*0.20*_m.cos(_m.radians(i*22.5))),
+                          cy + int(h*0.24*_m.sin(_m.radians(i*22.5)))) for i in range(16)]
+            pg.draw.polygon(surf, mid, inner_pts, 1)
+            # Sensor boom — forward spike with tip glow
+            pg.draw.line(surf, light, (cx + 4, cy), (w - 3, cy), 2)
+            pg.draw.line(surf, trim,  (cx + 4, cy), (cx + 14, cy), 1)
+            pg.draw.circle(surf, (200, 240, 255), (w - 3, cy), 3)
+            pg.draw.circle(surf, trim, (w - 3, cy), 3, 1)
+            # Side antenna fins (stubby)
+            pg.draw.line(surf, light, (cx, cy - 4), (cx - 8, cy - 8), 1)
+            pg.draw.line(surf, light, (cx, cy + 4), (cx - 8, cy + 8), 1)
+            # Rear engine pod (wider)
+            eg = pg.Rect(2, cy - 4, 8, 8)
             pg.draw.rect(surf, dark, eg)
-            _glow(surf, (60, 220, 255), (5, cy), 4)
-            # Cockpit dome
-            pg.draw.circle(surf, (40, 120, 220), (cx + 4, cy), 5)
-            pg.draw.circle(surf, (160, 220, 255), (cx + 4, cy), 5, 1)
+            pg.draw.rect(surf, (40, 60, 80), eg, 1)
+            # Dual blue ion engines
+            _glow(surf, (60, 220, 255), (6, cy - 2), 4)
+            _glow(surf, (60, 220, 255), (6, cy + 2), 3)
+            # Cockpit dome (hemispherical highlight)
+            pg.draw.circle(surf, (40, 120, 220), (cx + 4, cy), 6)
+            pg.draw.circle(surf, (160, 220, 255), (cx + 4, cy), 6, 1)
+            # Glare spot on dome
+            pg.draw.circle(surf, (220, 240, 255), (cx + 6, cy - 2), 2)
+            # Panel detail: radial lines around dome
+            for ai in range(6):
+                ar = _m.radians(ai * 60)
+                dx2 = int(8 * _m.cos(ar)); dy2 = int(8 * _m.sin(ar))
+                pg.draw.line(surf, (40, 50, 70), (cx + 4, cy), (cx + 4 + dx2, cy + dy2), 1)
 
         elif sc == "gunship":
             # ── Ironjaw Gunship — wide weapons platform ───────────────────────
