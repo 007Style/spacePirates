@@ -684,6 +684,155 @@ class SpaceDebris:
                     pass
 
 
+# ── Space Wreckage ────────────────────────────────────────────────────────────
+class SpaceWreckage:
+    """Large destroyed ship hull sections drifting through combat space.
+    They serve as obstacles (block bullets + ships) and yield metal when mined."""
+
+    # Hull section colour pools by ship class
+    _WRECK_COLS = [
+        (55,  60,  75),   # dark steel
+        (70,  50,  40),   # burnt orange-brown
+        (45,  55,  70),   # gunmetal blue-grey
+        (80,  70,  60),   # weathered ochre
+        (35,  40,  55),   # void black-blue
+    ]
+
+    def __init__(self, seed: int = 0, count: int = 0):
+        rng = random.Random(seed + 8888)
+        self.pieces: list[dict] = []
+        for _ in range(count):
+            col = rng.choice(self._WRECK_COLS)
+            # Randomised wreck polygon: 6–9 sides, large size
+            n_pts = rng.randint(6, 9)
+            shape = [rng.uniform(0.45, 0.95) for _ in range(n_pts)]
+            self.pieces.append({
+                "x":        rng.uniform(-2000, 2000),
+                "y":        rng.uniform(-1400, 1400),
+                "radius":   rng.randint(22, 52),
+                "rot":      rng.uniform(0, 360),
+                "rot_spd":  rng.uniform(-3.0, 3.0),
+                "vx":       rng.uniform(-8, 8),
+                "vy":       rng.uniform(-8, 8),
+                "color":    col,
+                "shape":    shape,
+                "collected": False,
+                # Wreck detail flavour
+                "has_window": rng.random() < 0.4,
+                "damage_mark": rng.randint(0, 3),
+            })
+
+    def update(self, dt: float) -> None:
+        WRAP = 2400
+        for p in self.pieces:
+            if p["collected"]:
+                continue
+            p["x"]   += p["vx"] * dt
+            p["y"]   += p["vy"] * dt
+            p["rot"]  = (p["rot"] + p["rot_spd"] * dt) % 360
+            if abs(p["x"]) > WRAP: p["vx"] *= -1
+            if abs(p["y"]) > WRAP: p["vy"] *= -1
+
+    def check_collect(self, ship, collect_r: float = 35.0) -> list[tuple[str, int]]:
+        results = []
+        for p in self.pieces:
+            if p["collected"]:
+                continue
+            dist = math.hypot(ship.x - p["x"], ship.y - p["y"])
+            if dist < collect_r + p["radius"]:
+                p["collected"] = True
+                amount = random.randint(25, 80)
+                results.append(("metal", amount))
+        return results
+
+    def draw(self, surface: pygame.Surface, ox: float, oy: float,
+             player_x: float = 0.0, player_y: float = 0.0) -> None:
+        sw, sh = surface.get_size()
+        for p in self.pieces:
+            if p["collected"]:
+                continue
+            sx = int(p["x"] + ox)
+            sy = int(p["y"] + oy)
+            r  = p["radius"]
+            if not (-r - 30 < sx < sw + r + 30 and -r - 30 < sy < sh + r + 30):
+                continue
+
+            col   = p["color"]
+            dark  = tuple(max(0, c - 35) for c in col)
+            light = tuple(min(255, c + 45) for c in col)
+            rot_r = math.radians(p["rot"])
+            shape = p["shape"]
+            n_pts = len(shape)
+
+            # ── Main wreck body ───────────────────────────────────────────────
+            body = []
+            for i, frac in enumerate(shape):
+                a = rot_r + (i / n_pts) * 2 * math.pi
+                body.append((sx + int(r * frac * math.cos(a)),
+                              sy + int(r * frac * math.sin(a))))
+            if len(body) >= 3:
+                # Drop shadow
+                shadow_pts = [(x + 5, y + 5) for x, y in body]
+                pygame.draw.polygon(surface, (10, 10, 15), shadow_pts)
+                # Main fill
+                pygame.draw.polygon(surface, dark, body)
+                # Lighter inner fill (75% scale)
+                inner = [(sx + int(r * frac * 0.72 * math.cos(rot_r + (i / n_pts) * 2 * math.pi)),
+                          sy + int(r * frac * 0.72 * math.sin(rot_r + (i / n_pts) * 2 * math.pi)))
+                         for i, frac in enumerate(shape)]
+                pygame.draw.polygon(surface, col, inner)
+                # Outline
+                pygame.draw.polygon(surface, light, body, 1)
+
+            # ── Panel / armour lines ──────────────────────────────────────────
+            panel_rng = random.Random(id(p) & 0xFFFF)
+            for _ in range(3):
+                pa = rot_r + panel_rng.uniform(0, 2 * math.pi)
+                pd = panel_rng.uniform(0.1, 0.6) * r
+                pl = panel_rng.uniform(0.15, 0.35) * r
+                px1 = int(sx + pd * math.cos(pa))
+                py1 = int(sy + pd * math.sin(pa))
+                px2 = int(px1 + pl * math.cos(pa + 1.5))
+                py2 = int(py1 + pl * math.sin(pa + 1.5))
+                pygame.draw.line(surface, light, (px1, py1), (px2, py2), 1)
+
+            # ── Blown-out window (dark square) ────────────────────────────────
+            if p.get("has_window"):
+                wa = rot_r + 0.4
+                wd = r * 0.4
+                wx = sx + int(wd * math.cos(wa))
+                wy = sy + int(wd * math.sin(wa))
+                ws = max(3, r // 6)
+                window_r = pygame.Rect(wx - ws, wy - ws, ws * 2, ws * 2)
+                pygame.draw.rect(surface, (15, 20, 35), window_r)
+                pygame.draw.rect(surface, (40, 60, 80), window_r, 1)
+
+            # ── Burn/scorch marks ─────────────────────────────────────────────
+            dm = p.get("damage_mark", 0)
+            for di in range(dm):
+                da = rot_r + di * 1.8
+                dd = r * 0.35
+                scorch_x = int(sx + dd * math.cos(da))
+                scorch_y = int(sy + dd * math.sin(da))
+                scorch_r = max(2, r // 8)
+                ssurf = pygame.Surface((scorch_r * 2, scorch_r * 2), pygame.SRCALPHA)
+                pygame.draw.circle(ssurf, (40, 20, 10, 80), (scorch_r, scorch_r), scorch_r)
+                surface.blit(ssurf, (scorch_x - scorch_r, scorch_y - scorch_r))
+
+            # ── Nearby pickup hint ────────────────────────────────────────────
+            dist = math.hypot(player_x - p["x"], player_y - p["y"])
+            if dist < 150:
+                try:
+                    fnt = pygame.font.SysFont("monospace", 9)
+                    lt  = fnt.render("[M] wreckage", True, (160, 200, 160))
+                    bk  = pygame.Surface((lt.get_width() + 4, lt.get_height()), pygame.SRCALPHA)
+                    bk.fill((0, 0, 0, 100))
+                    surface.blit(bk, (sx - lt.get_width() // 2 - 2, sy - r - 16))
+                    surface.blit(lt, (sx - lt.get_width() // 2, sy - r - 15))
+                except Exception:
+                    pass
+
+
 # ── Space Mines ───────────────────────────────────────────────────────────────
 class SpaceMineField:
     """Stationary proximity mines scattered around the combat arena.
@@ -1169,6 +1318,9 @@ class SpaceCombat:
         self._comet          = CometTrail(seed=env_seed)
         self._nebula_cloud   = NebulaCloud(seed=env_seed, count=4)
         self._space_debris   = SpaceDebris(seed=env_seed, count=random.randint(4, 8))
+        # Space wreckage — 60% chance to spawn some hull wreckage (1–4 pieces)
+        wreck_count = random.randint(1, 4) if random.random() < 0.60 else 0
+        self._space_wreckage = SpaceWreckage(seed=env_seed, count=wreck_count)
         # Space mines — 30% chance to spawn a mine field (2–5 mines)
         mine_count = random.randint(2, 5) if random.random() < 0.30 else 0
         self._mine_field     = SpaceMineField(seed=env_seed, count=mine_count)
@@ -1457,6 +1609,7 @@ class SpaceCombat:
         self._comet.update(dt)
         self._asteroid_field.update(dt)
         self._space_debris.update(dt)
+        self._space_wreckage.update(dt)
         self._mine_field.update(dt)
         # Asteroid resource collection check
         collected = self._asteroid_field.check_collect(self.player_ship)
@@ -1472,6 +1625,12 @@ class SpaceCombat:
                 self._asteroid_loot.append((rtype, amount))
                 self._loot_floaters.append(
                     [f"+{amount} {rtype}", self.player_ship.x, self.player_ship.y, 1.8])
+        # Wreckage collection (always auto — large pieces, obvious)
+        wreck_loot = self._space_wreckage.check_collect(self.player_ship, collect_r=10.0)
+        for rtype, amount in wreck_loot:
+            self._asteroid_loot.append((rtype, amount))
+            self._loot_floaters.append(
+                [f"+{amount} {rtype} (wreck)", self.player_ship.x, self.player_ship.y, 2.0])
         # Nebula slow — applies to all ships
         all_ships_for_slow = ([self.player_ship]
                               + [e for e in self.enemy_ships if not e.is_destroyed]
@@ -1990,6 +2149,9 @@ class SpaceCombat:
         self._space_debris.draw(surface, ox, oy,
                                 player_x=self.player_ship.x,
                                 player_y=self.player_ship.y)
+        self._space_wreckage.draw(surface, ox, oy,
+                                  player_x=self.player_ship.x,
+                                  player_y=self.player_ship.y)
         self._mine_field.draw(surface, ox, oy)
 
         # ── Player drones (drawn above environment, below ships) ──────────────
@@ -2361,6 +2523,14 @@ class SpaceCombat:
                 continue
             px_, py_ = _plot(piece["x"], piece["y"], (200, 180, 40))
             pygame.draw.circle(surface, (200, 180, 40), (px_, py_), 2)
+
+        # ── Space wreckage (grey larger dot) ──────────────────────────────────
+        for piece in self._space_wreckage.pieces:
+            if piece["collected"]:
+                continue
+            px_, py_ = _plot(piece["x"], piece["y"], (120, 120, 140))
+            pygame.draw.rect(surface, (120, 120, 140),
+                             (px_ - 2, py_ - 2, 4, 4))   # small square = wreck
 
         # ── Allied ships (cyan) ───────────────────────────────────────────────
         for ship in self.allied_ships:
