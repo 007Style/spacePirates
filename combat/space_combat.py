@@ -1091,6 +1091,8 @@ class SpaceCombat:
         # Combat results
         self.kills              = 0
         self.loot_drops: list[dict] = []
+        self._kill_credits      = 0    # total credits earned from kills (kills × 100)
+        self._base_ref          = None  # set by game.py so kills auto-credit base
 
         # Boarding flag
         self.boarding_target: Ship | None = None
@@ -1848,12 +1850,21 @@ class SpaceCombat:
 
     def _on_enemy_killed(self, ship: Ship) -> None:
         self.kills += 1
+        # ── Kill reward: 100cr per kill, tracked + awarded to base ───────────
+        CREDIT_PER_KILL = 100
+        self._kill_credits += CREDIT_PER_KILL
+        if self._base_ref is not None:
+            try:
+                self._base_ref.add_resource("credits", CREDIT_PER_KILL)
+            except Exception:
+                pass
         # Clear boarding suppression if this ship was being boarded
         if getattr(self, "_boarding_suppress_target", None) is ship:
             self._boarding_suppress_target = None
             self.boarding_target = None
         from core.events import bus
-        bus.publish("enemy_killed", ship=ship, kills=self.kills)
+        bus.publish("enemy_killed", ship=ship, kills=self.kills,
+                    kill_credits=self._kill_credits)
         # Roll loot drop
         from progression.rarity import rarity_system
         import json, os
@@ -1867,12 +1878,11 @@ class SpaceCombat:
                 drop_name = drops[0].get("name", "weapon")
         except Exception:
             pass
-        # Floating loot text above destroyed ship
-        credits_val = 100
-        label = f"+{credits_val}cr"
+        # Floating loot text above destroyed ship (shows running total)
+        label = f"+{CREDIT_PER_KILL}cr  [{self.kills}×100={self._kill_credits}cr]"
         if drop_name:
-            label += f"  [{drop_name}]"
-        self._loot_floaters.append([label, ship.x, ship.y, 2.2])
+            label = f"+{CREDIT_PER_KILL}cr  [{drop_name}]"
+        self._loot_floaters.append([label, ship.x, ship.y, 2.5])
 
     # ── Boarding helper ───────────────────────────────────────────────────────
     def _nearest_boardable_enemy(self) -> Ship | None:
@@ -2227,14 +2237,31 @@ class SpaceCombat:
         ov.fill((0, 30, 0, alpha))
         surface.blit(ov, (0, sh // 2 - 40))
 
-        font_lg = pygame.font.SysFont("monospace", 28, bold=True)
-        font_sm = pygame.font.SysFont("monospace", 14)
-        title = font_lg.render("SECTOR CLEAR", True, (80, 255, 100))
-        hint  = font_sm.render(
-            f"  {self.kills} ship(s) destroyed  ·  Press G to return to galaxy map",
-            True, (140, 220, 140))
-        surface.blit(title, (sw // 2 - title.get_width() // 2, sh // 2 - 34))
-        surface.blit(hint,  (sw // 2 - hint.get_width()  // 2, sh // 2 + 6))
+        font_lg  = pygame.font.SysFont("monospace", 28, bold=True)
+        font_med = pygame.font.SysFont("monospace", 16, bold=True)
+        font_sm  = pygame.font.SysFont("monospace", 13)
+
+        title = font_lg.render("✦ SECTOR CLEAR ✦", True, (80, 255, 100))
+
+        # Kill multiplier line  e.g. "5 ships × 100cr = 500cr"
+        if self.kills > 0:
+            mult_str = f"{self.kills} ship{'s' if self.kills != 1 else ''} × 100cr  =  {self._kill_credits}cr earned"
+            mult_col = (255, 220, 80)
+        else:
+            mult_str = "No ships destroyed"
+            mult_col = (140, 140, 140)
+        mult_t = font_med.render(mult_str, True, mult_col)
+
+        hint  = font_sm.render("Press G to return to galaxy map", True, (120, 200, 120))
+
+        # Expand overlay to fit all lines
+        ov = pygame.Surface((sw, 100), pygame.SRCALPHA)
+        ov.fill((0, 30, 0, alpha))
+        surface.blit(ov, (0, sh // 2 - 50))
+
+        surface.blit(title,  (sw // 2 - title.get_width()  // 2, sh // 2 - 44))
+        surface.blit(mult_t, (sw // 2 - mult_t.get_width() // 2, sh // 2 - 10))
+        surface.blit(hint,   (sw // 2 - hint.get_width()   // 2, sh // 2 + 18))
 
     def _draw_radar(self, surface: pygame.Surface, ox: float, oy: float) -> None:
         """Mini radar:

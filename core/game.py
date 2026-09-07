@@ -852,6 +852,9 @@ class Game:
         self.active_combat = SpaceCombat(ship, enemy_ships, nebula=nebula)
         # Give the combat engine a reference to the crew menu so AUTO works
         self.active_combat.crew_menu = self.crew_menu
+        # Give combat a base reference so kill credits auto-flow to base wallet
+        if getattr(self, "home_base", None):
+            self.active_combat._base_ref = self.home_base
         # Apply meta + origin drone_slots_bonus to drone system
         if self.meta_progression:
             bonus = int(self.meta_progression.get_upgrade_value("drone_slots_bonus", 0))
@@ -2009,6 +2012,9 @@ class Game:
         self.active_combat = SpaceCombat(ship, wave.ships, nebula=False)
         self.active_combat.crew_menu = self.crew_menu
         self.active_combat._is_base_defense = True   # flag checked in victory
+        # Kill credits flow to base wallet
+        if getattr(self, "home_base", None):
+            self.active_combat._base_ref = self.home_base
         self._victory_shown = False
         self._victory_data  = {}
         self.change_state(State.PLAYING)
