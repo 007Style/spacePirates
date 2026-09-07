@@ -276,11 +276,72 @@ class Drone:
         surface.blit(gsurf, (sx - glow_r * 2, sy - glow_r * 2),
                      special_flags=pygame.BLEND_ALPHA_SDL2)
 
-        # Body — small diamond/square rotated 45°
-        pts = [(sx, sy - sz), (sx + sz, sy),
-               (sx, sy + sz), (sx - sz, sy)]
-        pygame.draw.polygon(surface, self.color, pts)
-        # Bright centre dot
+        # ── Per-type distinct shapes ──────────────────────────────────────────
+        col  = self.color
+        if self.dtype == "attack":
+            # Fighter silhouette: forward-pointing arrowhead
+            pts = [(sx,      sy - sz - 2),   # nose
+                   (sx + sz, sy + sz - 1),   # right wing tip
+                   (sx,      sy + sz // 2),  # tail notch centre
+                   (sx - sz, sy + sz - 1)]   # left wing tip
+            pygame.draw.polygon(surface, col, pts)
+            pygame.draw.polygon(surface, (255, 255, 255), pts, 1)
+            # Engine glow dot at tail
+            pygame.draw.circle(surface, (255, 140, 40), (sx, sy + sz - 1), 2)
+
+        elif self.dtype == "repair":
+            # Green cross (medical)
+            arm = max(3, sz)
+            pygame.draw.rect(surface, col, (sx - 1, sy - arm, 3, arm * 2 + 1))
+            pygame.draw.rect(surface, col, (sx - arm, sy - 1, arm * 2 + 1, 3))
+            pygame.draw.rect(surface, (255, 255, 255),
+                             (sx - arm, sy - arm, arm * 2 + 1, arm * 2 + 1), 1)
+
+        elif self.dtype == "scout":
+            # Saucer: wide flat ellipse + dome
+            rx, ry = sz + 3, max(2, sz // 2)
+            pygame.draw.ellipse(surface, col, (sx - rx, sy - ry, rx * 2, ry * 2))
+            pygame.draw.ellipse(surface, (255, 255, 255),
+                                (sx - rx, sy - ry, rx * 2, ry * 2), 1)
+            # Dome on top
+            dome_r = max(2, sz - 1)
+            pygame.draw.circle(surface, (200, 220, 255), (sx, sy - 1), dome_r)
+            # Glare
+            pygame.draw.circle(surface, (255, 255, 255), (sx - 1, sy - 2), 1)
+
+        elif self.dtype == "emp":
+            # Hexagon with lightning bolt inside
+            n = 6
+            hex_pts = [(sx + int(sz * math.cos(math.pi / 6 + i * math.pi / 3)),
+                        sy + int(sz * math.sin(math.pi / 6 + i * math.pi / 3)))
+                       for i in range(n)]
+            pygame.draw.polygon(surface, col, hex_pts, 2)
+            # Lightning bolt (zigzag)
+            bolt = [(sx,       sy - sz + 3),
+                    (sx - 2,   sy - 1),
+                    (sx + 1,   sy - 1),
+                    (sx - 2,   sy + sz - 3)]
+            pygame.draw.lines(surface, (255, 255, 120), False, bolt, 2)
+            # Yellow inner glow
+            pygame.draw.circle(surface, (255, 240, 60), (sx, sy), 2)
+
+        elif self.dtype == "shield":
+            # Two concentric rings (energy shield look)
+            pygame.draw.circle(surface, col, (sx, sy), sz, 2)
+            pygame.draw.circle(surface, col, (sx, sy), max(1, sz - 3), 1)
+            # Cross of 4 dots on ring
+            for angle_deg in (0, 90, 180, 270):
+                a = math.radians(angle_deg)
+                dx = int((sz - 1) * math.cos(a))
+                dy = int((sz - 1) * math.sin(a))
+                pygame.draw.circle(surface, (200, 230, 255), (sx + dx, sy + dy), 2)
+
+        else:
+            # Fallback: diamond
+            pts = [(sx, sy - sz), (sx + sz, sy), (sx, sy + sz), (sx - sz, sy)]
+            pygame.draw.polygon(surface, col, pts)
+
+        # Bright centre dot (all types)
         pygame.draw.circle(surface, (255, 255, 255), (sx, sy), max(1, sz // 3))
 
         # Remaining-life bar (tiny, above drone)

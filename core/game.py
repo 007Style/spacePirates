@@ -42,6 +42,9 @@ class Game:
         self.show_hints          = True      # in-combat hint overlays
         self.boarding_auto_attack= True      # ENTER = auto-attack in boarding
         self.radar_zoom          = 1.0       # radar scale: 0.5=zoomed in, 2.0=zoomed out
+        self.particle_density    = "normal"  # "low" | "normal" | "high"
+        self.enemy_aggression    = "normal"  # "passive" | "normal" | "aggressive"
+        self.show_damage_floaters= True      # floating damage numbers above ships
 
         # Active state
         self.state = State.MAIN_MENU
@@ -439,8 +442,12 @@ class Game:
                         else:
                             # No valid target — inform the player
                             self.hud.push_notification(
-                                "No boardable target!  Destroy shields first (or hull < 25%)",
+                                "No boardable target!  Destroy shields first (or hull < 35%)",
                                 (220, 140, 40))
+                    elif result == "board_no_target":
+                        self.hud.push_notification(
+                            "Can't board yet — destroy shields OR reduce hull below 35%",
+                            (200, 120, 40))
                     elif result and result.startswith("launch_drone:"):
                         dtype = result.split(":", 1)[1]
                         if self.active_combat and self.active_combat.drone_system.max_slots > 0:
@@ -488,6 +495,17 @@ class Game:
                             ship.fleet_order = order
                             self.hud.push_notification(
                                 f"{ship.custom_name} → {order}", (80, 200, 80))
+                # TAKE COMMAND buttons
+                for ship_id, tc_btn in getattr(self, "_fleet_take_command_buttons", []):
+                    if tc_btn.collidepoint(mx, my):
+                        all_ships = list(self.player_fleet.ships)
+                        ship_to_command = next(
+                            (s for s in all_ships if s.id == ship_id), None)
+                        if ship_to_command:
+                            self.player_fleet.set_active(ship_to_command)
+                            self.hud.push_notification(
+                                f"Now commanding: {ship_to_command.custom_name}",
+                                (60, 200, 255))
                 # Hire crew buttons (post-mission hire pool)
                 from entities.crew import Crew
                 for idx, btn in getattr(self, "_fleet_hire_btns", []):
@@ -571,6 +589,18 @@ class Game:
                 for val, btn in getattr(self, "_settings_radar_zoom_btns", []):
                     if btn.collidepoint(mx, my):
                         self.radar_zoom = val
+                # Particle density
+                for pd_val, btn in getattr(self, "_settings_particle_density_btns", []):
+                    if btn.collidepoint(mx, my):
+                        self.particle_density = pd_val
+                # Enemy aggression
+                for ag_val, btn in getattr(self, "_settings_aggression_btns", []):
+                    if btn.collidepoint(mx, my):
+                        self.enemy_aggression = ag_val
+                # Damage floaters toggle
+                if hasattr(self, "_settings_dmg_floaters_btn") and \
+                        self._settings_dmg_floaters_btn.collidepoint(mx, my):
+                    self.show_damage_floaters = not self.show_damage_floaters
 
     def update(self, dt: float) -> None:
         # Auto-save timer
@@ -869,6 +899,10 @@ class Game:
             ob = _MP.origin_bonuses(self._run_origin)
             origin_drone = int(ob.get("drone_slots_bonus", 0))
             self.active_combat.drone_system.max_slots += origin_drone
+        # Add escort/follow ships as allied combatants
+        if self.player_fleet:
+            for escort in self.player_fleet.get_escort_ships():
+                self.active_combat.add_allied_ship(escort)
         # Reset victory tracking for this new combat
         self._victory_shown = False
         self._victory_data  = {}
@@ -2060,15 +2094,17 @@ class Game:
         order_buttons: list[tuple[str, str, pygame.Rect]] = []  # (ship_id, order, rect)
 
         # ── Fleet ships ────────────────────────────────────────────────────────
+        take_command_buttons: list[tuple[str, pygame.Rect]] = []   # (ship_id, rect)
         for ship in self.player_fleet.ships:
             is_active = (ship is self.player_fleet.active_ship)
             row = pygame.Rect(20, y, SCREEN_WIDTH - 40, 52)
             pygame.draw.rect(s, PANEL_BG, row)
             pygame.draw.rect(s, ACCENT if is_active else BORDER, row, 1)
 
-            tag = " [ACTIVE]" if is_active else ""
+            tag = " ★ ACTIVE SHIP" if is_active else ""
             name_s = font.render(
-                f"{ship.custom_name}  ({ship.ship_class}){tag}", True, TEXT_MAIN)
+                f"{ship.custom_name}  ({ship.ship_class}){tag}", True,
+                ACCENT if is_active else TEXT_MAIN)
             s.blit(name_s, (30, y + 6))
 
             hp_pct = ship.hull / max(ship.max_hull, 1)
@@ -2098,7 +2134,20 @@ class Game:
                 cur_lbl = font_sm.render(f"({ship.fleet_order})", True, cur_col)
                 s.blit(cur_lbl, (bx + 4, y + 20))
 
+                # TAKE COMMAND button — switch active ship to this one
+                tc_btn = pygame.Rect(SCREEN_WIDTH - 200, y + 10, 160, 30)
+                mx_now, my_now = pygame.mouse.get_pos()
+                hover_tc = tc_btn.collidepoint(mx_now, my_now)
+                pygame.draw.rect(s, (20, 50, 80) if hover_tc else (10, 30, 50), tc_btn)
+                pygame.draw.rect(s, ACCENT, tc_btn, 2 if hover_tc else 1)
+                tc_lbl = font_sm.render("⭐ TAKE COMMAND", True, ACCENT)
+                s.blit(tc_lbl, (tc_btn.centerx - tc_lbl.get_width() // 2,
+                                 tc_btn.centery - tc_lbl.get_height() // 2))
+                take_command_buttons.append((ship.id, tc_btn))
+
             y += 60
+
+        self._fleet_take_command_buttons = take_command_buttons
 
         # ── Captured ships ─────────────────────────────────────────────────────
         captured = getattr(self.player_fleet, "captured_ships", [])
@@ -2476,9 +2525,45 @@ class Game:
 
         sep_y += EXT_ROW_H + 4
 
+        # Row 3: Particle density | Enemy aggression | Show Damage Floaters
+        lb7 = font_sm.render("Particles:", True, TEXT_MAIN)
+        s.blit(lb7, (LEFT_X, sep_y + 4))
+        self._settings_particle_density_btns = []
+        for i, (pd, pdl) in enumerate([("low","Low"), ("normal","Normal"), ("high","High")]):
+            btn = pygame.Rect(LEFT_X + 80 + i * 70, sep_y, 64, 28)
+            sel = (self.particle_density == pd)
+            pygame.draw.rect(s, (30,60,90) if sel else PANEL_BG, btn)
+            pygame.draw.rect(s, ACCENT if sel else BORDER, btn, 1)
+            lt = font_sm.render(pdl, True, TEXT_MAIN if sel else TEXT_MUTED)
+            s.blit(lt, (btn.centerx-lt.get_width()//2, btn.centery-lt.get_height()//2))
+            self._settings_particle_density_btns.append((pd, btn))
+
+        lb8 = font_sm.render("Enemy AI:", True, TEXT_MAIN)
+        s.blit(lb8, (LEFT_X + 300, sep_y + 4))
+        self._settings_aggression_btns = []
+        for i, (ag, agl) in enumerate([("passive","Passive"), ("normal","Normal"), ("aggressive","Aggressive")]):
+            btn = pygame.Rect(LEFT_X + 380 + i * 90, sep_y, 84, 28)
+            sel = (self.enemy_aggression == ag)
+            agg_col = {"passive": (80,160,80), "normal": (255,180,40), "aggressive": (220,60,60)}[ag]
+            pygame.draw.rect(s, (20,40,10) if sel and ag == "passive" else
+                               (60,50,10) if sel and ag == "normal" else
+                               (60,10,10) if sel else PANEL_BG, btn)
+            pygame.draw.rect(s, agg_col if sel else BORDER, btn, 2 if sel else 1)
+            lt = font_sm.render(agl, True, agg_col if sel else TEXT_MUTED)
+            s.blit(lt, (btn.centerx-lt.get_width()//2, btn.centery-lt.get_height()//2))
+            self._settings_aggression_btns.append((ag, btn))
+
+        lb9 = font_sm.render("Dmg Floaters:", True, TEXT_MAIN)
+        s.blit(lb9, (LEFT_X + 660, sep_y + 4))
+        df_btn = pygame.Rect(LEFT_X + 790, sep_y, 80, 28)
+        _toggle(s, df_btn, self.show_damage_floaters)
+        self._settings_dmg_floaters_btn = df_btn
+
+        sep_y += EXT_ROW_H + 4
+
         # ── Photo mode hint ───────────────────────────────────────────────────
         pygame.draw.line(s, BORDER, (LEFT_X, sep_y), (SCREEN_WIDTH - LEFT_X, sep_y))
-        ph = font_sm.render("Photo Mode: F12 in-game  |  Kill multiplier: 100 cr/ship  |  Board: destroy shields OR hull < 25%", True, TEXT_MUTED)
+        ph = font_sm.render("Photo Mode: F12 in-game  |  Kill: 100 cr/ship  |  Board: shields OR hull < 35%  |  Fleet: set ship to FOLLOW order", True, TEXT_MUTED)
         s.blit(ph, (LEFT_X, sep_y + 4))
         sep_y += 18
 

@@ -237,9 +237,14 @@ class AsteroidField:
                 "collected": False,
                 "rot":       rng.uniform(0, 360),
                 "rot_spd":   rng.uniform(-8.0, 8.0),
-                "shape_pts": [rng.uniform(0.60, 1.0) for _ in range(16)],
+                # 20-point jagged shape for better detail
+                "shape_pts": [rng.uniform(0.55, 1.0) for _ in range(20)],
                 "vx":        rng.uniform(-12, 12),
                 "vy":        rng.uniform(-12, 12),
+                # secondary highlight angle offset (per-asteroid variety)
+                "hl2_off":   rng.uniform(0, math.pi * 2),
+                # small dust ring radius multiplier
+                "dust_r":    rng.uniform(1.12, 1.28),
             })
 
     def update(self, dt: float) -> None:
@@ -260,7 +265,7 @@ class AsteroidField:
             sy = int(ast["y"] + oy)
             r  = int(ast["radius"])
             # Skip off-screen
-            if not (-r - 20 < sx < sw + r + 20 and -r - 20 < sy < sh + r + 20):
+            if not (-r - 30 < sx < sw + r + 30 and -r - 30 < sy < sh + r + 30):
                 continue
             col     = ast["color"]
             darker  = tuple(max(0, c - 45) for c in col)
@@ -268,8 +273,19 @@ class AsteroidField:
             lighter = tuple(min(255, c + 55) for c in col)
             highlight = tuple(min(255, c + 90) for c in col)
 
+            # ── Dust ring / atmosphere halo (drawn behind everything) ─────────
+            dust_r_mult = ast.get("dust_r", 1.18)
+            dust_r = int(r * dust_r_mult)
+            _anim_t = getattr(self, "_anim_t", 0.0)
+            dust_alpha = max(12, int(20 + 8 * math.sin(_anim_t * 0.6 + float(id(ast) & 0xFF))))
+            dust_surf = pygame.Surface((dust_r * 2 + 4, dust_r * 2 + 4), pygame.SRCALPHA)
+            pygame.draw.circle(dust_surf, (*shadow, dust_alpha),
+                               (dust_r + 2, dust_r + 2), dust_r)
+            surface.blit(dust_surf, (sx - dust_r - 2, sy - dust_r - 2),
+                         special_flags=pygame.BLEND_ALPHA_SDL2)
+
             # ── Rotating jagged polygon body ─────────────────────────────────
-            shape_pts = ast.get("shape_pts", [1.0] * 14)
+            shape_pts = ast.get("shape_pts", [1.0] * 20)
             rot_rad   = math.radians(ast.get("rot", 0))
             n_pts     = len(shape_pts)
             # Drop shadow polygon (slightly offset)
@@ -298,7 +314,7 @@ class AsteroidField:
 
             # ── Craters (rotate with body) ────────────────────────────────────
             rng_c = random.Random(id(ast) & 0xFFFF)
-            num_craters = max(2, r // 12)
+            num_craters = max(2, r // 10)
             for _ in range(num_craters):
                 angle_c = rng_c.uniform(0, 2 * math.pi) + rot_rad
                 dist_c  = rng_c.uniform(0.1, 0.55) * r
@@ -310,7 +326,7 @@ class AsteroidField:
                 # Small specular dot inside crater
                 pygame.draw.circle(surface, col, (cx_ - 1, cy_ - 1), max(1, cr // 3))
 
-            # ── Specular highlight (upper-left, rotates with asteroid) ─────────
+            # ── Primary specular highlight (upper-left) ────────────────────────
             hl_angle = rot_rad - math.pi * 0.75
             hl_dist  = r * 0.35
             hl_x = sx + int(hl_dist * math.cos(hl_angle))
@@ -318,12 +334,18 @@ class AsteroidField:
             pygame.draw.circle(surface, highlight, (hl_x, hl_y), max(2, r // 5))
             pygame.draw.circle(surface, (255, 255, 255), (hl_x, hl_y), max(1, r // 9))
 
+            # ── Secondary highlight (opposite side, dimmer) ────────────────────
+            hl2_angle = rot_rad + math.pi * 0.4 + ast.get("hl2_off", 1.2)
+            hl2_x = sx + int(r * 0.45 * math.cos(hl2_angle))
+            hl2_y = sy + int(r * 0.45 * math.sin(hl2_angle))
+            pygame.draw.circle(surface, lighter, (hl2_x, hl2_y), max(1, r // 8))
+
             # ── Satellite pebbles for large asteroids ─────────────────────────
             if r > 32:
                 pebble_rng = random.Random((id(ast) & 0xFFFF) + 1)
-                for _ in range(5):
+                for _ in range(6):
                     ang_p = pebble_rng.uniform(0, 2 * math.pi) + rot_rad * 0.3
-                    d_p   = r + pebble_rng.uniform(5, 14)
+                    d_p   = r + pebble_rng.uniform(5, 18)
                     pr    = pebble_rng.randint(2, 6)
                     px_   = sx + int(d_p * math.cos(ang_p))
                     py_   = sy + int(d_p * math.sin(ang_p))
@@ -2049,28 +2071,28 @@ class SpaceCombat:
     def _nearest_boardable_enemy(self) -> Ship | None:
         """Return nearest enemy that can be boarded.
         Primary:   shield depleted + recharge lock active (shield freshly broken).
-        Fallback:  any ship within 500px with hull < 25 pct (badly damaged).
+        Fallback:  any ship within 900px with hull < 35 pct (badly damaged).
         """
         def _dist(s):
             return math.hypot(s.x - self.player_ship.x, s.y - self.player_ship.y)
 
-        # Primary: shield broken
+        # Primary: shield broken (relaxed range to 900)
         primary = [
             s for s in self.enemy_ships
             if not s.is_destroyed
             and s.shield <= 0
             and s.shield_recharge_lock > 0
-            and _dist(s) < 700
+            and _dist(s) < 900
         ]
         if primary:
             return min(primary, key=_dist)
 
-        # Fallback: low-hull enemy within boarding range
+        # Fallback: low-hull enemy within boarding range (relaxed to 35% hull, 900px)
         candidates = [
             s for s in self.enemy_ships
             if not s.is_destroyed
-            and (s.hull / max(s.max_hull, 1)) < 0.25
-            and _dist(s) < 500
+            and (s.hull / max(s.max_hull, 1)) < 0.35
+            and _dist(s) < 900
         ]
         if not candidates:
             return None

@@ -385,6 +385,7 @@ class HomeBase:
     TAB_RESEARCH  = "research"
     TAB_TRADING   = "trading"
     TAB_BAY       = "bay"
+    TAB_WAREHOUSE = "warehouse"
 
     # Tab display order and labels
     TAB_ROSTER  = "crew_roster"   # new: full crew roster screen
@@ -399,6 +400,7 @@ class HomeBase:
         ("research",    "Research"),
         ("trading",     "Trading"),
         ("bay",         "Bay Control"),
+        ("warehouse",   "Warehouse"),
     ]
 
     # Building sub-categories
@@ -451,6 +453,27 @@ class HomeBase:
         self._anim_time: float = 0.0   # drives patrol ship orbits + pulse effects
         # Deterministic asteroid shape seed (fixed per base instance)
         self._asteroid_rng = random.Random(1337)
+
+        # ── Starfield (home base background) ─────────────────────────────────
+        _srng = random.Random(42)
+        self._bg_stars = [
+            (_srng.randint(0, SCREEN_WIDTH - 1),
+             _srng.randint(0, SCREEN_HEIGHT - 1),
+             _srng.randint(1, 3),          # size
+             _srng.randint(60, 200))       # brightness
+            for _ in range(280)
+        ]
+        # Nebula blobs for depth
+        self._bg_nebulae = [
+            (_srng.randint(0, SCREEN_WIDTH - 1),
+             _srng.randint(0, SCREEN_HEIGHT - 1),
+             _srng.randint(40, 120),        # radius
+             (_srng.randint(10, 35),        # alpha
+              _srng.randint(8, 30),
+              _srng.randint(15, 50)),
+             (_srng.randint(20, 80), _srng.randint(20, 80), _srng.randint(50, 120)))
+            for _ in range(6)
+        ]
 
         # Active tab
         self._active_tab = self.TAB_BUILDINGS
@@ -1268,6 +1291,21 @@ class HomeBase:
                             self._push_note("No repairs needed or no metal.", WARNING)
                     return "bay_repair_all"
 
+            # ── Warehouse tab ─────────────────────────────────────────────────
+            elif self._active_tab == self.TAB_WAREHOUSE:
+                for idx, entry in getattr(self, "_wh_exchange_rects", {}).items():
+                    btn_r, give_k, give_a, recv_k, recv_a = entry
+                    if btn_r.collidepoint(mx, my):
+                        if self.resources.get(give_k, 0) >= give_a:
+                            self.resources[give_k] = self.resources.get(give_k, 0) - give_a
+                            self.add_resource(recv_k, recv_a)
+                            self._push_note(
+                                f"Exchanged {give_a} {give_k} → {recv_a} {recv_k}",
+                                SUCCESS)
+                        else:
+                            self._push_note(f"Not enough {give_k}!", DANGER)
+                        return f"wh_exchange:{idx}"
+
         return None
 
     # ── Draw ──────────────────────────────────────────────────────────────────
@@ -1277,6 +1315,24 @@ class HomeBase:
         self._building_rects: dict[str, pygame.Rect] = {}
 
         sw, sh = surface.get_size()
+
+        # ── Starfield background ──────────────────────────────────────────────
+        _t = self._anim_time
+        for bx, by, bsz, bv in getattr(self, "_bg_stars", []):
+            # Slow twinkle
+            twinkle = int(bv + 30 * math.sin(_t * 1.2 + bx * 0.07))
+            clamp = max(40, min(220, twinkle))
+            if bsz == 1:
+                surface.set_at((bx, by), (clamp, clamp, clamp))
+            else:
+                pygame.draw.circle(surface, (clamp, clamp, clamp), (bx, by), bsz - 1)
+        # Nebula blobs
+        for nx, ny, nr, nalpha, ncol in getattr(self, "_bg_nebulae", []):
+            nsurf = pygame.Surface((nr * 2, nr * 2), pygame.SRCALPHA)
+            a_val = max(8, min(45, nalpha[0] + int(10 * math.sin(_t * 0.4 + nx * 0.01))))
+            pygame.draw.circle(nsurf, (*ncol, a_val), (nr, nr), nr)
+            surface.blit(nsurf, (nx - nr, ny - nr),
+                         special_flags=pygame.BLEND_ALPHA_SDL2)
         PANEL_W = 540
         ASTRO_X = PANEL_W
 
@@ -1409,6 +1465,8 @@ class HomeBase:
             self._draw_bay_tab(surface, content_y, PANEL_W, sh, fleet=fleet)
         elif self._active_tab == self.TAB_ROSTER:
             self._draw_crew_roster_tab(surface, content_y, PANEL_W, sh, fleet=fleet)
+        elif self._active_tab == self.TAB_WAREHOUSE:
+            self._draw_warehouse_tab(surface, content_y, PANEL_W, sh)
 
         # ── RIGHT: asteroid base view ─────────────────────────────────────────
         pygame.draw.line(surface, BORDER, (PANEL_W, 88), (PANEL_W, sh - 50))
@@ -1719,6 +1777,102 @@ class HomeBase:
         popup = self._quest_ship_select_popup
         if popup is not None:
             self._draw_quest_ship_popup(surface, popup, sm_font, sec_font)
+
+
+    # ── Warehouse tab ─────────────────────────────────────────────────────────
+    def _draw_warehouse_tab(self, surface, start_y, panel_w, sh):
+        """Resource storage overview + resource-for-resource exchange."""
+        x0 = 14
+        y  = start_y
+        w  = panel_w - x0 - 10
+
+        sec_font = pygame.font.SysFont("monospace", 13, bold=True)
+        sm_font  = pygame.font.SysFont("monospace", 11)
+
+        hdr = sec_font.render("WAREHOUSE — RESOURCE STORAGE", True, ACCENT)
+        surface.blit(hdr, (x0, y)); y += 20
+
+        # Resource bars
+        RES_CAPS = {
+            "credits":      99999,
+            "metal":        5000,
+            "fuel":         2000,
+            "supplies":     1000,
+            "void_crystals": 500,
+            "contraband":   300,
+        }
+        RES_COLS = {
+            "credits":       (220, 200, 60),
+            "metal":         (160, 200, 160),
+            "fuel":          (60, 180, 255),
+            "supplies":      (200, 160, 100),
+            "void_crystals": (180, 80, 255),
+            "contraband":    (220, 80, 80),
+        }
+        bar_w = w - 80
+        bar_h = 16
+        for res_key, cap in RES_CAPS.items():
+            val = self.resources.get(res_key, 0)
+            pct = min(1.0, val / max(cap, 1))
+            col = RES_COLS.get(res_key, (150, 150, 150))
+            # Label
+            lbl = sm_font.render(f"{res_key.replace('_', ' ').title():<14}", True, col)
+            surface.blit(lbl, (x0, y + 1))
+            # Bar background
+            pygame.draw.rect(surface, (20, 20, 30), (x0 + 100, y, bar_w, bar_h))
+            pygame.draw.rect(surface, col,          (x0 + 100, y, int(bar_w * pct), bar_h))
+            pygame.draw.rect(surface, (50, 50, 70), (x0 + 100, y, bar_w, bar_h), 1)
+            # Value text
+            val_s = sm_font.render(f"{val}/{cap}", True, (180, 180, 180))
+            surface.blit(val_s, (x0 + 100 + bar_w + 4, y + 1))
+            y += bar_h + 4
+
+        y += 10
+        pygame.draw.line(surface, BORDER, (x0, y), (x0 + w, y)); y += 8
+
+        # ── Resource exchange ─────────────────────────────────────────────────
+        exch_hdr = sec_font.render("RESOURCE EXCHANGE", True, (200, 160, 80))
+        surface.blit(exch_hdr, (x0, y)); y += 16
+        note = sm_font.render("Trade resources at set rates. Requires Warehouse building.", True, TEXT_MUTED)
+        surface.blit(note, (x0, y)); y += 14
+
+        # Exchange pairs: (give_key, give_amt, recv_key, recv_amt, label)
+        EXCHANGES = [
+            ("metal",   50, "credits",      200, "Sell Metal  50→200cr"),
+            ("credits", 200, "metal",        50, "Buy Metal  200cr→50"),
+            ("fuel",    20, "credits",       80, "Sell Fuel   20→80cr"),
+            ("credits", 80, "fuel",          20, "Buy Fuel   80cr→20"),
+            ("metal",   30, "fuel",          15, "Metal→Fuel  30→15"),
+            ("fuel",    15, "metal",         30, "Fuel→Metal  15→30"),
+        ]
+        warehouse = self.buildings.get("warehouse")
+        wh_built  = warehouse and warehouse.is_built()
+        self._wh_exchange_rects: dict[int, pygame.Rect] = {}
+
+        for idx, (give_k, give_a, recv_k, recv_a, label) in enumerate(EXCHANGES):
+            if y > sh - 80:
+                break
+            can = (wh_built and self.resources.get(give_k, 0) >= give_a)
+            row_r = pygame.Rect(x0, y, w - 76, 22)
+            pygame.draw.rect(surface, (12, 20, 30) if idx % 2 == 0 else PANEL_BG, row_r)
+            pygame.draw.rect(surface, BORDER, row_r, 1)
+            lbl_s = sm_font.render(label, True, TEXT_MAIN if can else TEXT_MUTED)
+            surface.blit(lbl_s, (x0 + 4, y + 3))
+            # Exchange button
+            btn_r = pygame.Rect(x0 + w - 72, y, 70, 22)
+            pygame.draw.rect(surface, (15, 45, 15) if can else (30, 15, 15), btn_r)
+            pygame.draw.rect(surface, SUCCESS if can else DANGER, btn_r, 1)
+            btn_lbl = sm_font.render("TRADE", True, SUCCESS if can else DANGER)
+            surface.blit(btn_lbl, (btn_r.centerx - btn_lbl.get_width() // 2,
+                                   btn_r.centery - btn_lbl.get_height() // 2))
+            if can:
+                self._wh_exchange_rects[idx] = (btn_r, give_k, give_a, recv_k, recv_a)
+            y += 24
+
+        if not wh_built:
+            lock_s = sm_font.render("Build the Warehouse to unlock resource exchange.", True, WARNING)
+            surface.blit(lock_s, (x0, y + 4))
+
 
     # ── RIGHT: asteroid base view ─────────────────────────────────────────────
 

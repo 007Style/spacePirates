@@ -823,7 +823,8 @@ class CrewManagementMenu:
         self._equip_rect: pygame.Rect | None = None
         self._station_rects: dict[str, pygame.Rect] = {}
         self._auto_rects: dict[str, pygame.Rect] = {}
-        self._board_rect: pygame.Rect | None = None
+        self._board_rect: pygame.Rect | None          = None
+        self._board_rect_inactive: pygame.Rect | None = None
         # Per-station auto toggle state (True = on)
         self._auto: dict[str, bool] = {s: False for s in
             ["cockpit", "gun_turret", "engine_room",
@@ -877,8 +878,12 @@ class CrewManagementMenu:
             if self._equip_rect and self._equip_rect.collidepoint(lx, ly):
                 ship.equip_best()
                 return "equip_best"
+            # Board button — always clickable; returns "board" if active,
+            # "board_no_target" if button is shown but grayed out
             if self._board_rect and self._board_rect.collidepoint(lx, ly):
                 return "board"
+            if self._board_rect_inactive and self._board_rect_inactive.collidepoint(lx, ly):
+                return "board_no_target"
             # Drone launch buttons
             for dtype, drect in self._drone_launch_btns:
                 if drect.collidepoint(lx, ly):
@@ -1069,8 +1074,9 @@ class CrewManagementMenu:
                                eb_rect.centery - eb_txt.get_height() // 2))
         self._equip_rect = eb_rect
 
-        # BOARD SHIP button (right) — active when nearest enemy is boardable
-        self._board_rect = None
+        # BOARD SHIP button (right) — always drawn; pulses when target available
+        self._board_rect          = None
+        self._board_rect_inactive = None
         board_target = combat._nearest_boardable_enemy() if combat is not None else None
         board_active = board_target is not None
         brd_rect = pygame.Rect(x0 + half_w + 4, btn_y, half_w, btn_h)
@@ -1100,17 +1106,20 @@ class CrewManagementMenu:
                                 brd_rect.centery - brd_txt.get_height() // 2))
         if board_active:
             self._board_rect = brd_rect
+        else:
+            # Store inactive rect so clicking it gives useful feedback
+            self._board_rect_inactive = brd_rect
 
         # Hint line
         if board_active:
             shield_broken2 = (board_target.shield <= 0
                               and getattr(board_target, "shield_recharge_lock", 0) > 0)
-            hint_txt = ("Shield down! Press B or BOARD" if shield_broken2
-                        else "Hull critical! Press B or BOARD")
+            hint_txt = ("Shield down! Click BOARD or press [B]" if shield_broken2
+                        else "Hull < 35%! Click BOARD or press [B]")
             hint = self._font_sm.render(hint_txt, True, (80, 220, 200))
         else:
             hint = self._font_sm.render(
-                "Y=autopilot  Click AUTO to toggle station", True, TEXT_MUTED)
+                "BOARD: destroy shields or hull < 35%", True, TEXT_MUTED)
         surface.blit(hint, (x0, btn_y + btn_h + 4))
 
         # ── Drone Launcher Panel ──────────────────────────────────────────────

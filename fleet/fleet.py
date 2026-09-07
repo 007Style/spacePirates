@@ -220,6 +220,17 @@ class Fleet:
     def dismiss_mercenaries(self) -> None:
         self.mercenaries.clear()
 
+    # ── Escort ships (follow + guard, non-active) ─────────────────────────────
+    def get_escort_ships(self) -> list[Ship]:
+        """Return ships in the fleet that should join combat as allied escorts."""
+        from fleet.orders import Order as _Order
+        return [
+            s for s in self.ships
+            if s is not self.active_ship
+            and not s.is_destroyed
+            and s.fleet_order in (_Order.FOLLOW, _Order.GUARD_BASE)
+        ]
+
     # ── All combat ships (player + followers + mercs) ─────────────────────────
     def combat_wing(self) -> list[Ship]:
         followers = [s for s in self.ships
