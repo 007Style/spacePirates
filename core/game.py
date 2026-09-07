@@ -784,10 +784,11 @@ class Game:
         stats_s = font_sm.render(stats_line, True, TEXT_MUTED)
         s.blit(stats_s, (20, 52))
 
-        hint_s = font_sm.render(
-            "Fly around to collect resources  —  click 'Return to Map' when done",
-            True, (120, 200, 120))
-        s.blit(hint_s, (20, 70))
+        if getattr(self, "show_hints", True):
+            hint_s = font_sm.render(
+                "Fly around to collect resources  —  click 'Return to Map' when done",
+                True, (120, 200, 120))
+            s.blit(hint_s, (20, 70))
 
         # ── "Return to Map" button — top-right corner, always visible ─────────
         btn_w, btn_h = 200, 36
@@ -857,6 +858,7 @@ class Game:
             self.active_combat._base_ref = self.home_base
         # Pass settings flags to combat engine
         self.active_combat._auto_collect_debris = self.auto_collect_debris
+        self.active_combat._radar_zoom          = getattr(self, "radar_zoom", 1.0)
         # Apply meta + origin drone_slots_bonus to drone system
         if self.meta_progression:
             bonus = int(self.meta_progression.get_upgrade_value("drone_slots_bonus", 0))

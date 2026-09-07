@@ -2272,7 +2272,9 @@ class SpaceCombat:
         """
         sw, sh = surface.get_size()
         r       = 60          # slightly larger radar
-        scale   = 0.055       # world units per radar pixel
+        # Apply radar_zoom setting (1.0=default, 0.5=zoomed in/closer, 2.0=zoomed out/wider)
+        _zoom   = getattr(self, "_radar_zoom", 1.0)
+        scale   = 0.055 / max(0.1, _zoom)   # bigger zoom → smaller scale → more detail
         cx      = r + 8       # radar centre on screen (bottom-left)
         cy      = sh - r - 8
 
