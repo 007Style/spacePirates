@@ -33,7 +33,19 @@ class HUD:
 
     # ── Draw ──────────────────────────────────────────────────────────────────
     def draw(self, surface: pygame.Surface, player_ship, meta_prog=None,
-             combat=None) -> None:
+             combat=None, crosshair_style: str = "cross",
+             hud_opacity: float = 1.0) -> None:
+        # Apply HUD opacity by drawing onto a temporary surface when opacity < 1
+        if hud_opacity < 0.99:
+            _hud_surf = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+            self._draw_inner(_hud_surf, player_ship, meta_prog, combat, crosshair_style)
+            _hud_surf.set_alpha(int(hud_opacity * 255))
+            surface.blit(_hud_surf, (0, 0))
+        else:
+            self._draw_inner(surface, player_ship, meta_prog, combat, crosshair_style)
+
+    def _draw_inner(self, surface: pygame.Surface, player_ship, meta_prog, combat,
+                    crosshair_style: str = "cross") -> None:
         self._draw_ship_bars(surface, player_ship)
         if meta_prog:
             self._draw_wanted(surface, meta_prog.wanted_level)
@@ -44,7 +56,29 @@ class HUD:
             self._draw_crew_morale(surface, player_ship)
         if combat:
             self._draw_kill_count(surface, combat.kills)
+        # Crosshair
+        if player_ship and crosshair_style != "none":
+            self._draw_crosshair(surface, player_ship, crosshair_style)
         self._draw_notifications(surface)
+
+    def _draw_crosshair(self, surface: pygame.Surface, ship, style: str) -> None:
+        """Draw an aim reticle at the ship's facing direction."""
+        import math
+        sw, sh = surface.get_size()
+        cx, cy = sw // 2, sh // 2   # crosshair at screen centre (player is centred)
+        col = (80, 200, 80)         # subtle green
+        sz  = 12
+        if style == "cross":
+            pygame.draw.line(surface, col, (cx - sz, cy), (cx - 4, cy), 1)
+            pygame.draw.line(surface, col, (cx + 4, cy), (cx + sz, cy), 1)
+            pygame.draw.line(surface, col, (cx, cy - sz), (cx, cy - 4), 1)
+            pygame.draw.line(surface, col, (cx, cy + 4), (cx, cy + sz), 1)
+            pygame.draw.circle(surface, col, (cx, cy), 3, 1)
+        elif style == "dot":
+            pygame.draw.circle(surface, col, (cx, cy), 3)
+        elif style == "circle":
+            pygame.draw.circle(surface, col, (cx, cy), sz, 1)
+            pygame.draw.circle(surface, col, (cx, cy), 3, 1)
 
     # ── Components ────────────────────────────────────────────────────────────
     def _draw_ship_bars(self, surface: pygame.Surface, ship) -> None:

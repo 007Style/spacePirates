@@ -1464,12 +1464,14 @@ class SpaceCombat:
             self._asteroid_loot.append((rtype, amount))
             self._loot_floaters.append(
                 [f"+{amount} {rtype}", self.player_ship.x, self.player_ship.y, 1.8])
-        # Floating debris collection
-        debris_loot = self._space_debris.check_collect(self.player_ship, collect_r=28.0)
-        for rtype, amount in debris_loot:
-            self._asteroid_loot.append((rtype, amount))
-            self._loot_floaters.append(
-                [f"+{amount} {rtype}", self.player_ship.x, self.player_ship.y, 1.8])
+        # Floating debris collection — gated by auto_collect_debris setting
+        _auto_col = getattr(self, "_auto_collect_debris", True)
+        if _auto_col:
+            debris_loot = self._space_debris.check_collect(self.player_ship, collect_r=28.0)
+            for rtype, amount in debris_loot:
+                self._asteroid_loot.append((rtype, amount))
+                self._loot_floaters.append(
+                    [f"+{amount} {rtype}", self.player_ship.x, self.player_ship.y, 1.8])
         # Nebula slow — applies to all ships
         all_ships_for_slow = ([self.player_ship]
                               + [e for e in self.enemy_ships if not e.is_destroyed]

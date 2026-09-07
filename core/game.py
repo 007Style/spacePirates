@@ -435,8 +435,6 @@ class Game:
                             if self.active_combat:
                                 self.active_combat._boarding_suppress_target = target
                                 self.active_combat.boarding_target = target
-                                # Also stop auto-fire at this target immediately
-                                self.active_combat._last_fire_suppressed = True
                             self._start_boarding(target)
                         else:
                             # No valid target — inform the player
@@ -828,7 +826,9 @@ class Game:
         # HUD on top
         if self.hud:
             self.hud.draw(self.screen, ship, self.meta_progression,
-                          self.active_combat)
+                          self.active_combat,
+                          crosshair_style=getattr(self, "crosshair_style", "cross"),
+                          hud_opacity=getattr(self, "hud_opacity", 1.0))
 
         # Victory screen overlay (drawn over everything when sector is clear)
         if self.active_combat and self.active_combat.sector_clear and \
@@ -855,6 +855,8 @@ class Game:
         # Give combat a base reference so kill credits auto-flow to base wallet
         if getattr(self, "home_base", None):
             self.active_combat._base_ref = self.home_base
+        # Pass settings flags to combat engine
+        self.active_combat._auto_collect_debris = self.auto_collect_debris
         # Apply meta + origin drone_slots_bonus to drone system
         if self.meta_progression:
             bonus = int(self.meta_progression.get_upgrade_value("drone_slots_bonus", 0))
