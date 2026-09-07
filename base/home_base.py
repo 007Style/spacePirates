@@ -1844,7 +1844,8 @@ class HomeBase:
             can = self.resources.get("credits", 0) >= item["cost"]
             row = pygame.Rect(x0, y, w - 76, 28)
             pygame.draw.rect(surface, PANEL_BG, row)
-            icon = TYPE_ICONS.get(item["type"], "•")
+            itype = item.get("type", "crew_gear" if "slot" in item else "")
+            icon = TYPE_ICONS.get(itype, "•")
             nm = sm.render(f"{icon} {item['name'][:18]:<18}  {item['rarity'][:3].upper()}",
                            True, rc)
             surface.blit(nm, (x0 + 4, y + 3))
