@@ -235,3 +235,33 @@ class Fleet:
             "ships":             [s.to_dict() for s in self.ships],
             "active_missions":   [m.to_dict() for m in self.active_missions],
         }
+
+    def load_from_dict(self, data: dict) -> None:
+        """Restore fleet state from a saved dict (called during game load)."""
+        import json
+        import os
+        from settings import DATA_DIR
+        try:
+            with open(os.path.join(DATA_DIR, "ships.json")) as f:
+                ship_templates: list[dict] = json.load(f)
+        except Exception:
+            ship_templates = []
+        tpl_map = {t["id"]: t for t in ship_templates}
+
+        self.ships.clear()
+        self.captured_ships.clear()
+        active_id = data.get("active_ship_id")
+        for sdata in data.get("ships", []):
+            sid = sdata.get("id", "")
+            tpl = tpl_map.get(sid, {})
+            merged = {**tpl, **{k: v for k, v in sdata.items() if v is not None}}
+            ship = Ship(merged)
+            # Restore custom name, hull, shield
+            ship.custom_name = sdata.get("custom_name", ship.name)
+            ship.hull        = float(sdata.get("hull",  ship.max_hull))
+            ship.shield      = float(sdata.get("shield", ship.max_shield))
+            self.ships.append(ship)
+            if sid == active_id:
+                self.active_ship = ship
+        if not self.active_ship and self.ships:
+            self.active_ship = self.ships[0]
