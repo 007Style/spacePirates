@@ -269,6 +269,17 @@ class Drone:
         sz    = self.size
         glow_r = sz + int(3 * pulse)
 
+        # Per-type rotation speed (radians/s equivalent, driven by _pulse)
+        _ROT_SPEED = {"attack": 2.5, "repair": 1.2, "scout": 0.8,
+                      "emp": 3.0, "shield": 1.5}
+        rot = self._pulse * _ROT_SPEED.get(self.dtype, 1.5)  # continuous rotation angle
+
+        def _rot_pt(rx: float, ry: float) -> tuple[int, int]:
+            """Rotate point (rx, ry) around (sx, sy) by `rot` radians."""
+            c, s = math.cos(rot), math.sin(rot)
+            return (sx + int(c * rx - s * ry),
+                    sy + int(s * rx + c * ry))
+
         # Glow halo
         gsurf = pygame.Surface((glow_r * 4, glow_r * 4), pygame.SRCALPHA)
         pygame.draw.circle(gsurf, (*self.glow_color, int(50 * pulse)),
@@ -279,26 +290,31 @@ class Drone:
         # ── Per-type distinct shapes ──────────────────────────────────────────
         col  = self.color
         if self.dtype == "attack":
-            # Fighter silhouette: forward-pointing arrowhead
-            pts = [(sx,      sy - sz - 2),   # nose
-                   (sx + sz, sy + sz - 1),   # right wing tip
-                   (sx,      sy + sz // 2),  # tail notch centre
-                   (sx - sz, sy + sz - 1)]   # left wing tip
+            # Fighter silhouette: forward-pointing arrowhead (rotates)
+            pts = [_rot_pt(0,       -sz - 2),   # nose
+                   _rot_pt(sz,       sz - 1),   # right wing tip
+                   _rot_pt(0,        sz // 2),  # tail notch centre
+                   _rot_pt(-sz,      sz - 1)]   # left wing tip
             pygame.draw.polygon(surface, col, pts)
             pygame.draw.polygon(surface, (255, 255, 255), pts, 1)
             # Engine glow dot at tail
-            pygame.draw.circle(surface, (255, 140, 40), (sx, sy + sz - 1), 2)
+            ex, ey = _rot_pt(0, sz - 1)
+            pygame.draw.circle(surface, (255, 140, 40), (ex, ey), 2)
 
         elif self.dtype == "repair":
-            # Green cross (medical)
+            # Green cross (medical) — rotates to spin
             arm = max(3, sz)
-            pygame.draw.rect(surface, col, (sx - 1, sy - arm, 3, arm * 2 + 1))
-            pygame.draw.rect(surface, col, (sx - arm, sy - 1, arm * 2 + 1, 3))
-            pygame.draw.rect(surface, (255, 255, 255),
-                             (sx - arm, sy - arm, arm * 2 + 1, arm * 2 + 1), 1)
+            for ang in (rot, rot + math.pi / 2):
+                c2, s2 = math.cos(ang), math.sin(ang)
+                x1 = sx + int(-1 * c2 - (-arm) * s2)
+                y1 = sy + int(-1 * s2 + (-arm) * c2)
+                x2 = sx + int(-1 * c2 - (arm) * s2)
+                y2 = sy + int(-1 * s2 + (arm) * c2)
+                pygame.draw.line(surface, col, (x1, y1), (x2, y2), 3)
+            pygame.draw.circle(surface, (255, 255, 255), (sx, sy), max(1, sz // 2), 1)
 
         elif self.dtype == "scout":
-            # Saucer: wide flat ellipse + dome
+            # Saucer: wide flat ellipse + antenna
             rx, ry = sz + 3, max(2, sz // 2)
             pygame.draw.ellipse(surface, col, (sx - rx, sy - ry, rx * 2, ry * 2))
             pygame.draw.ellipse(surface, (255, 255, 255),
@@ -306,22 +322,24 @@ class Drone:
             # Dome on top
             dome_r = max(2, sz - 1)
             pygame.draw.circle(surface, (200, 220, 255), (sx, sy - 1), dome_r)
-            # Glare
-            pygame.draw.circle(surface, (255, 255, 255), (sx - 1, sy - 2), 1)
+            # Rotating antenna boom
+            ax2, ay2 = _rot_pt(0, -(sz + 4))
+            pygame.draw.line(surface, (200, 240, 255), (sx, sy), (ax2, ay2), 1)
+            pygame.draw.circle(surface, (255, 255, 255), (ax2, ay2), 1)
 
         elif self.dtype == "emp":
-            # Hexagon with lightning bolt inside
+            # Hexagon with lightning bolt inside — rotates
             n = 6
-            hex_pts = [(sx + int(sz * math.cos(math.pi / 6 + i * math.pi / 3)),
-                        sy + int(sz * math.sin(math.pi / 6 + i * math.pi / 3)))
+            hex_pts = [_rot_pt(int(sz * math.cos(math.pi / 6 + i * math.pi / 3)),
+                               int(sz * math.sin(math.pi / 6 + i * math.pi / 3)))
                        for i in range(n)]
             pygame.draw.polygon(surface, col, hex_pts, 2)
-            # Lightning bolt (zigzag)
-            bolt = [(sx,       sy - sz + 3),
-                    (sx - 2,   sy - 1),
-                    (sx + 1,   sy - 1),
-                    (sx - 2,   sy + sz - 3)]
-            pygame.draw.lines(surface, (255, 255, 120), False, bolt, 2)
+            # Crackling lines emanating outward (pulse-driven)
+            for ang_off in (0, math.pi * 2 / 3, math.pi * 4 / 3):
+                ca = rot + ang_off
+                lx, ly = (sx + int((sz + int(3 * pulse)) * math.cos(ca)),
+                           sy + int((sz + int(3 * pulse)) * math.sin(ca)))
+                pygame.draw.line(surface, (255, 255, 120), (sx, sy), (lx, ly), 1)
             # Yellow inner glow
             pygame.draw.circle(surface, (255, 240, 60), (sx, sy), 2)
 
@@ -329,16 +347,17 @@ class Drone:
             # Two concentric rings (energy shield look)
             pygame.draw.circle(surface, col, (sx, sy), sz, 2)
             pygame.draw.circle(surface, col, (sx, sy), max(1, sz - 3), 1)
-            # Cross of 4 dots on ring
-            for angle_deg in (0, 90, 180, 270):
-                a = math.radians(angle_deg)
+            # 4 dots orbiting ring (rotate with _pulse)
+            for i in range(4):
+                a = rot + i * math.pi / 2
                 dx = int((sz - 1) * math.cos(a))
                 dy = int((sz - 1) * math.sin(a))
                 pygame.draw.circle(surface, (200, 230, 255), (sx + dx, sy + dy), 2)
 
         else:
             # Fallback: diamond
-            pts = [(sx, sy - sz), (sx + sz, sy), (sx, sy + sz), (sx - sz, sy)]
+            pts = [_rot_pt(0, -sz), _rot_pt(sz, 0),
+                   _rot_pt(0, sz),  _rot_pt(-sz, 0)]
             pygame.draw.polygon(surface, col, pts)
 
         # Bright centre dot (all types)

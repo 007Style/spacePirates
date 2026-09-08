@@ -1194,6 +1194,16 @@ class HomeBase:
                             else:
                                 self._push_note("Need 300cr for hull upgrade", DANGER)
                         return f"upgrade_hull:{sid}"
+                # TAKE COMMAND buttons
+                for sid, tc_rect in getattr(self, "_fleet_switch_rects", {}).items():
+                    if tc_rect.collidepoint(mx, my) and fleet_ref:
+                        ship_to_cmd = next((s for s in (fleet_ref.ships or [])
+                                            if s.id == sid), None)
+                        if ship_to_cmd:
+                            fleet_ref.set_active(ship_to_cmd)
+                            self._push_note(
+                                f"Now commanding: {ship_to_cmd.custom_name}", (60, 200, 255))
+                        return f"take_command:{sid}"
 
             # ── Research tab ────────────────────────────────────────────────
             elif self._active_tab == self.TAB_RESEARCH:
@@ -1252,6 +1262,19 @@ class HomeBase:
                             msg = f"+{res.get('rel_gained',0)} relation!" if res["ok"] else res["reason"]
                             self._push_note(msg, (80, 200, 255) if res["ok"] else DANGER)
                             return f"trade_gift:{nid}"
+                # Resource exchange buttons (outside nation guard — always available)
+                for ex_id, btn_r in getattr(self, "_trade_exchange_rects", {}).items():
+                    if btn_r.collidepoint(mx, my):
+                        parts = ex_id.split(":")
+                        give_k, give_a, recv_k, recv_a = parts[0], int(parts[1]), parts[2], int(parts[3])
+                        if self.resources.get(give_k, 0) >= give_a:
+                            self.resources[give_k] = self.resources.get(give_k, 0) - give_a
+                            self.add_resource(recv_k, recv_a)
+                            self._push_note(
+                                f"Exchanged {give_a} {give_k} → {recv_a} {recv_k}", SUCCESS)
+                        else:
+                            self._push_note(f"Not enough {give_k}!", DANGER)
+                        return f"trade_exchange:{ex_id}"
 
             # ── Bay Control tab ───────────────────────────────────────────────
             elif self._active_tab == self.TAB_BAY:
@@ -2916,6 +2939,7 @@ class HomeBase:
         self._repair_25_rects:   dict[str, pygame.Rect] = {}
         self._repair_full_rects: dict[str, pygame.Rect] = {}
         self._repair_hull_rects: dict[str, pygame.Rect] = {}
+        self._fleet_switch_rects: dict[str, pygame.Rect] = {}
 
         for ship in ships:
             if y > sh - 100: break
@@ -2925,9 +2949,23 @@ class HomeBase:
             cost_full = int(damage * 2)
             color    = SUCCESS if hull_pct > 0.5 else (WARNING if hull_pct > 0.25 else DANGER)
 
-            # Ship name + hull bar
-            nm = sf.render(f"{ship.custom_name[:20]}  [{ship.ship_class}]", True, TEXT_MAIN)
-            surface.blit(nm, (x0, y)); y += 16
+            # Active badge / TAKE COMMAND button next to ship name
+            is_active = (fleet and fleet.active_ship is ship)
+            active_lbl_w = 90
+            nm = sf.render(
+                f"{ship.custom_name[:20]}  [{ship.ship_class}]"
+                + ("  [ACTIVE]" if is_active else ""),
+                True, (60, 220, 140) if is_active else TEXT_MAIN)
+            surface.blit(nm, (x0, y))
+            if not is_active:
+                tc_r = pygame.Rect(x0 + w - active_lbl_w, y, active_lbl_w, 14)
+                pygame.draw.rect(surface, (20, 40, 60), tc_r)
+                pygame.draw.rect(surface, (60, 180, 255), tc_r, 1)
+                tc_t = sm.render("TAKE COMMAND", True, (60, 180, 255))
+                surface.blit(tc_t, (tc_r.centerx - tc_t.get_width() // 2,
+                                    tc_r.centery - tc_t.get_height() // 2))
+                self._fleet_switch_rects[ship.id] = tc_r
+            y += 16
             pygame.draw.rect(surface, (60,0,0), (x0, y, w, 8))
             pygame.draw.rect(surface, color, (x0, y, int(w * hull_pct), 8))
             hp_txt = sm.render(f"Hull: {ship.hull:.0f}/{ship.max_hull}  Damage: {damage:.0f}  Cost to fully repair: {cost_full}cr",
@@ -3234,6 +3272,46 @@ class HomeBase:
             bt = sm.render(f"  {'✓' if unlocked else '○'} At {threshold:+d}: {bonus}", True, col)
             surface.blit(bt, (x0, y)); y += 13
 
+        y += 6
+        pygame.draw.line(surface, BORDER, (x0, y), (x0 + w, y)); y += 8
+
+        # ── RESOURCE EXCHANGE section ─────────────────────────────────────────
+        self._trade_exchange_rects: dict[str, pygame.Rect] = {}
+        exch_hdr = sf.render("RESOURCE EXCHANGE", True, (200, 160, 80))
+        surface.blit(exch_hdr, (x0, y)); y += 14
+        note = sm.render("Direct resource conversion — no trading post relation required.", True, TEXT_MUTED)
+        surface.blit(note, (x0, y)); y += 14
+
+        # Exchange pairs: (give_key, give_amt, recv_key, recv_amt, label_str)
+        TRADE_EXCHANGES = [
+            ("metal",   5,  "credits", 2, "5 metal → 2 credits"),
+            ("fuel",    5,  "credits", 2, "5 fuel  → 2 credits"),
+            ("credits", 2,  "metal",   1, "2 credits → 1 metal"),
+            ("credits", 3,  "fuel",    1, "3 credits → 1 fuel "),
+            ("metal",   2,  "fuel",    1, "2 metal → 1 fuel   "),
+        ]
+        for ex_key, (give_k, give_a, recv_k, recv_a, ex_label) in \
+                enumerate(TRADE_EXCHANGES):
+            if y > sh - 60:
+                break
+            can_ex = self.resources.get(give_k, 0) >= give_a
+            row_ex = pygame.Rect(x0, y, w - 76, 22)
+            pygame.draw.rect(surface, (12, 20, 30) if ex_key % 2 == 0 else PANEL_BG, row_ex)
+            pygame.draw.rect(surface, BORDER, row_ex, 1)
+            ex_lbl = sm.render(ex_label, True, TEXT_MAIN if can_ex else TEXT_MUTED)
+            surface.blit(ex_lbl, (x0 + 4, y + 3))
+            btn_ex = pygame.Rect(x0 + w - 72, y, 70, 22)
+            pygame.draw.rect(surface, (15, 45, 15) if can_ex else (30, 15, 15), btn_ex)
+            pygame.draw.rect(surface, SUCCESS if can_ex else DANGER, btn_ex, 1)
+            btn_ex_lbl = sm.render("TRADE", True, SUCCESS if can_ex else DANGER)
+            surface.blit(btn_ex_lbl, (btn_ex.centerx - btn_ex_lbl.get_width() // 2,
+                                      btn_ex.centery - btn_ex_lbl.get_height() // 2))
+            if can_ex:
+                # key = "give_k:give_a:recv_k:recv_a"
+                ex_id = f"{give_k}:{give_a}:{recv_k}:{recv_a}"
+                self._trade_exchange_rects[ex_id] = btn_ex
+            y += 24
+
 
     def _draw_asteroid_view(self, surface: pygame.Surface,
                             ax: int, ay: int, aw: int, ah: int,
@@ -3260,71 +3338,82 @@ class HomeBase:
             sy = ay + rng.randint(0, ah)
             pygame.draw.circle(surface, (240, 240, 255), (sx, sy), 2)
 
-        # ── Asteroid body — improved multi-layer rocky look ──────────────────
+        # ── Planet body — blue/teal rocky planet with rings and clouds ────────
         built_count = sum(1 for b in self.buildings.values() if b.is_built())
-        base_r = 90 + self.expansion_level * 20
+        base_r = 70 + self.expansion_level * 15   # planet radius
 
-        # Layer 1: shadow/depth blob (slightly larger, darker)
-        rng.seed(888)
-        shadow_pts = []
-        for i in range(16):
-            angle = (2 * math.pi * i) / 16
-            r = base_r + rng.randint(-10, 14) + 12
-            shadow_pts.append((cx + int(r * math.cos(angle + 0.15)),
-                                cy + int(r * math.sin(angle + 0.15))))
-        pygame.draw.polygon(surface, (28, 22, 18), shadow_pts)
+        # Drop shadow (dark blob offset down-right)
+        pygame.draw.circle(surface, (10, 14, 28), (cx + 8, cy + 8), base_r + 4)
 
-        # Layer 2: main rock body
-        rng.seed(999)
-        pts_count = 18
-        asteroid_pts = []
-        for i in range(pts_count):
-            angle = (2 * math.pi * i) / pts_count
-            r = base_r + rng.randint(-20, 20)
-            asteroid_pts.append((cx + int(r * math.cos(angle)),
-                                  cy + int(r * math.sin(angle))))
-        pygame.draw.polygon(surface, (62, 50, 40), asteroid_pts)
+        # Planetary body: 3 concentric circles with slightly different blue/teal tones
+        pygame.draw.circle(surface, (30,  65,  95), (cx, cy), base_r)          # deep ocean
+        pygame.draw.circle(surface, (42,  90, 120), (cx, cy), int(base_r * 0.82))  # mid tone
+        pygame.draw.circle(surface, (55, 115, 145), (cx, cy), int(base_r * 0.60))  # bright core
 
-        # Layer 3: lighter face (slightly smaller, offset up-left to fake lighting)
-        rng.seed(777)
-        inner_pts = []
-        for i in range(pts_count):
-            angle = (2 * math.pi * i) / pts_count
-            r = (base_r - 8) + rng.randint(-12, 12)
-            inner_pts.append((cx - 6 + int(r * math.cos(angle)),
-                               cy - 5 + int(r * math.sin(angle))))
-        pygame.draw.polygon(surface, (78, 63, 50), inner_pts)
+        # Terrain patches (darker continent blobs)
+        rng.seed(314)
+        for _ in range(6):
+            px3 = cx + rng.randint(-int(base_r * 0.55), int(base_r * 0.55))
+            py3 = cy + rng.randint(-int(base_r * 0.55), int(base_r * 0.55))
+            if math.hypot(px3 - cx, py3 - cy) < base_r * 0.75:
+                pr3 = rng.randint(int(base_r * 0.12), int(base_r * 0.28))
+                pygame.draw.circle(surface, (28, 58, 42), (px3, py3), pr3)  # dark teal land
+                pygame.draw.circle(surface, (40, 80, 58), (px3, py3), max(1, pr3 - 3), 1)
 
-        # Outline / ridge
-        pygame.draw.polygon(surface, (95, 78, 62), asteroid_pts, 3)
+        # Cloud bands — horizontal ellipses with slight vertical offset, soft alpha
+        cloud_surf = pygame.Surface((base_r * 2 + 4, base_r * 2 + 4), pygame.SRCALPHA)
+        cloud_cx, cloud_cy = base_r + 2, base_r + 2
+        for band_y_off, band_h, band_alpha in (
+            (-int(base_r * 0.35), int(base_r * 0.12), 38),
+            ( int(base_r * 0.05), int(base_r * 0.10), 28),
+            ( int(base_r * 0.42), int(base_r * 0.09), 22),
+        ):
+            bw = int(base_r * 1.7)
+            bh = band_h
+            bx = cloud_cx - bw // 2
+            by = cloud_cy + band_y_off - bh // 2
+            if 0 <= bx and by >= 0 and bx + bw <= cloud_surf.get_width() and by + bh <= cloud_surf.get_height():
+                pygame.draw.ellipse(cloud_surf, (220, 230, 255, band_alpha), (bx, by, bw, bh))
+        # Clip to planet circle using a mask approach (draw planet mask then blit)
+        pygame.draw.circle(cloud_surf, (0, 0, 0, 0), (cloud_cx, cloud_cy), base_r, base_r + 2)  # erase outside ring
+        surface.blit(cloud_surf, (cx - base_r - 2, cy - base_r - 2),
+                     special_flags=pygame.BLEND_ALPHA_SDL2)
 
-        # Crater pits — circles with shading
-        CRATERS = [
-            (cx - 22, cy + 14, 11, (40, 32, 26)),
-            (cx + 28, cy - 18, 8,  (44, 35, 28)),
-            (cx - 6,  cy - 28, 6,  (38, 30, 24)),
-            (cx + 12, cy + 30, 10, (42, 34, 27)),
-            (cx - 30, cy - 10, 7,  (45, 37, 30)),
-        ]
-        for crx, cry, crad, ccol in CRATERS:
-            if math.hypot(crx - cx, cry - cy) < base_r * 0.85:
-                pygame.draw.circle(surface, ccol, (crx, cry), crad)
-                pygame.draw.circle(surface, (55, 44, 36), (crx, cry), crad, 1)
-                # Highlight rim top-left
-                pygame.draw.arc(surface, (90, 74, 60),
-                                (crx - crad, cry - crad, crad * 2, crad * 2),
-                                math.pi * 0.75, math.pi * 1.5, 1)
+        # Planet ring (Saturn-style thin ellipse outline)
+        ring_rx = int(base_r * 1.55)
+        ring_ry = int(base_r * 0.22)
+        ring_surf = pygame.Surface((ring_rx * 2 + 4, ring_ry * 2 + 4), pygame.SRCALPHA)
+        pygame.draw.ellipse(ring_surf, (140, 180, 220, 60),
+                            (0, 0, ring_rx * 2, ring_ry * 2 + 2), 3)
+        surface.blit(ring_surf, (cx - ring_rx, cy - ring_ry - 1),
+                     special_flags=pygame.BLEND_ALPHA_SDL2)
 
-        # Rock texture / surface detail (random small pebble bumps)
-        rng.seed(7)
-        for _ in range(18):
-            hx = cx + rng.randint(-int(base_r * 0.7), int(base_r * 0.7))
-            hy = cy + rng.randint(-int(base_r * 0.7), int(base_r * 0.7))
-            if math.hypot(hx - cx, hy - cy) < base_r * 0.75:
-                hl = rng.randint(2, 5)
-                pygame.draw.circle(surface, (98, 80, 65), (hx, hy), hl)
-                # tiny dark shadow dot
-                pygame.draw.circle(surface, (40, 32, 26), (hx + 1, hy + 1), hl - 1)
+        # Specular highlight (bright dot upper-left)
+        hl_x = cx - int(base_r * 0.38)
+        hl_y = cy - int(base_r * 0.38)
+        pygame.draw.circle(surface, (180, 220, 255), (hl_x, hl_y), max(3, base_r // 6))
+        pygame.draw.circle(surface, (255, 255, 255), (hl_x - 2, hl_y - 2), max(1, base_r // 14))
+
+        # Planet outline
+        pygame.draw.circle(surface, (80, 120, 160), (cx, cy), base_r, 2)
+
+        # Orbiting smaller asteroids (one per extra asteroid_count beyond first)
+        orbit_count = max(0, self.asteroid_count - 1)
+        for oi in range(min(orbit_count, 5)):
+            orb_r   = base_r + 42 + oi * 28
+            orb_spd = 0.6 - oi * 0.08
+            orb_a   = t * orb_spd + oi * (2 * math.pi / max(orbit_count, 1))
+            orb_px  = cx + int(orb_r * math.cos(orb_a))
+            orb_py  = cy + int(orb_r * math.sin(orb_a) * 0.45)  # flatten vertically
+            ast_r   = 18 + oi * 3
+            # Drop shadow
+            pygame.draw.circle(surface, (10, 10, 20), (orb_px + 3, orb_py + 3), ast_r)
+            # Rock body
+            pygame.draw.circle(surface, (68, 56, 44), (orb_px, orb_py), ast_r)
+            pygame.draw.circle(surface, (90, 75, 60),  (orb_px, orb_py), ast_r, 1)
+            # Small specular
+            pygame.draw.circle(surface, (120, 105, 90),
+                               (orb_px - ast_r // 3, orb_py - ast_r // 3), max(2, ast_r // 4))
 
         # ── Buildings as surface modules ──────────────────────────────────────
         MODULE_COLORS = {
@@ -3403,7 +3492,7 @@ class HomeBase:
                 surface.blit(nm, (px2 - nm.get_width() // 2, py2 + 8))
 
         # ── Base name + level label ───────────────────────────────────────────
-        lvl_names = ["Asteroid Outpost", "Hidden Station", "Pirate Fortress"]
+        lvl_names = ["Pirate Hideout", "Outpost World", "Fortress Planet"]
         lvl_name  = lvl_names[min(self.expansion_level, 2)]
         n_surf = self._font.render(lvl_name, True, TEXT_MAIN)
         surface.blit(n_surf, (cx - n_surf.get_width() // 2, cy + base_r + 48))

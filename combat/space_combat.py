@@ -194,16 +194,17 @@ def set_particle_system(ps) -> None:
 class AsteroidField:
     """4–8 asteroid obstacles that provide cover and drop resources on contact."""
 
-    # Mineral types: (name, base_color, loot_bonus, glow_color)
+    # Mineral types: (name, base_color, loot_bonus, glow_color, weight)
     MINERAL_TYPES = [
         ("iron",     (75,  78,  88),  "metal",   (140, 150, 170), 55),   # blue-grey iron
         ("iron",     (82,  72,  60),  "metal",   (150, 140, 110), 45),   # brown iron ore
         ("copper",   (110, 85,  40),  "credits", (220, 170,  60), 40),   # copper/gold
         ("crystal",  (50,  80, 130),  "metal",   ( 80, 160, 255), 30),   # ice-blue crystal
         ("void",     (75,  40, 110),  "credits", (180,  80, 255), 15),   # rare void rock
+        ("gold",     (200, 160,  20), "credits", (255, 200,  40),  8),   # rare gold — bright yellow
     ]
     # Rarity weights for mineral type
-    _MINERAL_WEIGHTS = [55, 45, 40, 30, 15]
+    _MINERAL_WEIGHTS = [55, 45, 40, 30, 15, 8]
 
     def __init__(self, seed: int = 0):
         rng = random.Random(seed)
@@ -277,6 +278,25 @@ class AsteroidField:
             dust_r_mult = ast.get("dust_r", 1.18)
             dust_r = int(r * dust_r_mult)
             _anim_t = getattr(self, "_anim_t", 0.0)
+            mineral_early = ast.get("mineral", "iron")
+            # Void: slow pulsing dark purple atmosphere behind asteroid
+            if mineral_early == "void" and not ast["collected"]:
+                void_atm_r = r + int(12 + 6 * math.sin(_anim_t * 1.2 + float(id(ast) & 0xFF)))
+                void_atm_s = pygame.Surface((void_atm_r * 2 + 4, void_atm_r * 2 + 4), pygame.SRCALPHA)
+                void_alpha = max(18, int(32 + 14 * math.sin(_anim_t * 0.8 + float(id(ast) & 0xFF))))
+                pygame.draw.circle(void_atm_s, (80, 20, 130, void_alpha),
+                                   (void_atm_r + 2, void_atm_r + 2), void_atm_r)
+                surface.blit(void_atm_s, (sx - void_atm_r - 2, sy - void_atm_r - 2),
+                             special_flags=pygame.BLEND_ALPHA_SDL2)
+            # Gold: warm orange glow behind asteroid
+            elif mineral_early == "gold" and not ast["collected"]:
+                gold_atm_r = r + int(8 + 4 * math.sin(_anim_t * 1.8 + float(id(ast) & 0xFF)))
+                gold_atm_s = pygame.Surface((gold_atm_r * 2 + 4, gold_atm_r * 2 + 4), pygame.SRCALPHA)
+                gold_alpha = max(15, int(28 + 10 * math.sin(_anim_t * 2.2 + float(id(ast) & 0xFF))))
+                pygame.draw.circle(gold_atm_s, (200, 120, 20, gold_alpha),
+                                   (gold_atm_r + 2, gold_atm_r + 2), gold_atm_r)
+                surface.blit(gold_atm_s, (sx - gold_atm_r - 2, sy - gold_atm_r - 2),
+                             special_flags=pygame.BLEND_ALPHA_SDL2)
             dust_alpha = max(12, int(20 + 8 * math.sin(_anim_t * 0.6 + float(id(ast) & 0xFF))))
             dust_surf = pygame.Surface((dust_r * 2 + 4, dust_r * 2 + 4), pygame.SRCALPHA)
             pygame.draw.circle(dust_surf, (*shadow, dust_alpha),
@@ -359,8 +379,8 @@ class AsteroidField:
                 mineral  = ast.get("mineral", "iron")
                 _anim_t  = getattr(self, "_anim_t", 0.0)
 
-                # Crystal/void: outer glow halo
-                if mineral in ("crystal", "void"):
+                # Crystal/void/gold: outer glow halo
+                if mineral in ("crystal", "void", "gold"):
                     halo_r = r + 8
                     halo_s = pygame.Surface((halo_r * 2, halo_r * 2), pygame.SRCALPHA)
                     halo_alpha = max(10, int(25 + 12 * math.sin(_anim_t * 2.5 + float(id(ast) & 0xFF))))
@@ -370,7 +390,7 @@ class AsteroidField:
 
                 # Mineral veins inside body
                 vein_col_map = {"copper": (220, 170, 60), "crystal": (120, 200, 255),
-                                "void": (200, 100, 255)}
+                                "void": (200, 100, 255), "gold": (255, 220, 60)}
                 vein_col = vein_col_map.get(mineral, tuple(min(255, c + 50) for c in col))
                 vein_rng = random.Random((id(ast) & 0xFFFF) + 99)
                 for _ in range(max(1, r // 15)):
@@ -395,7 +415,8 @@ class AsteroidField:
                     try:
                         gi_f = pygame.font.SysFont("monospace", 9)
                         mineral_icons = {"iron": "⛏Fe", "copper": "⛏Cu",
-                                         "crystal": "✦Ice", "void": "★Void"}
+                                         "crystal": "✦Ice", "void": "★Void",
+                                         "gold": "★Au"}
                         gi_t = gi_f.render(mineral_icons.get(mineral, "⛏"), True, glow_col)
                         surface.blit(gi_t, (sx - gi_t.get_width() // 2, sy - r - 14))
                     except Exception:
@@ -414,7 +435,9 @@ class AsteroidField:
                 loot_type = ast.get("loot_type", "metal")
                 mineral   = ast.get("mineral", "iron")
                 # Rarer minerals give more loot
-                if mineral == "void":
+                if mineral == "gold":
+                    amount = random.randint(50, 120)   # gold: most credits
+                elif mineral == "void":
                     amount = random.randint(30, 60)
                 elif mineral == "crystal":
                     amount = random.randint(20, 45)
@@ -1370,6 +1393,10 @@ class SpaceCombat:
                 })
         # Raid button state: set by draw loop when player is close
         self._raid_target: dict | None = None
+        # Cargo raid pods: [{cs, x, y, tx, ty, t, speed}]
+        self._cargo_raid_pods: list[dict] = []
+        # Pending raid outcome floaters: [(text, wx, wy, lifetime)]
+        self._raid_outcome_floaters: list[list] = []
 
     # ── Drone menu helpers ────────────────────────────────────────────────────
     def open_drone_menu(self) -> None:
@@ -1467,21 +1494,23 @@ class SpaceCombat:
                     self._boarding_suppress_target = target
                     return "board"
             if event.key == pygame.K_r:
-                # Raid nearest close cargo ship
-                if self._raid_target and not self._raid_target["looted"]:
+                # Launch a boarding pod toward nearest close cargo ship
+                if self._raid_target and not self._raid_target["looted"] \
+                        and not self._raid_target.get("pod_launched"):
                     cs = self._raid_target
-                    cs["looted"] = True
-                    # Return loot data for game.py to process
-                    self._last_cargo_loot = {
-                        "metal":   cs["cargo_metal"],
-                        "fuel":    cs["cargo_fuel"],
-                        "credits": cs["cargo_credits"],
-                    }
-                    # Loot floater
+                    cs["pod_launched"] = True
+                    # Create a raid pod flying from player to cargo ship
+                    self._cargo_raid_pods.append({
+                        "cs":    cs,
+                        "x":     self.player_ship.x,
+                        "y":     self.player_ship.y,
+                        "t":     0.0,
+                        "speed": 0.6,
+                    })
                     self._loot_floaters.append([
-                        f"+{cs['cargo_metal']}mt +{cs['cargo_fuel']}fu +{cs['cargo_credits']}cr",
-                        cs["x"], cs["y"], 2.5])
-                    return "raid"
+                        "Boarding pod launched!", self.player_ship.x,
+                        self.player_ship.y - 20, 1.5])
+                    return "raid_pod_launched"
         return None
 
     def raid_cargo_loot(self) -> dict | None:
@@ -1623,7 +1652,9 @@ class SpaceCombat:
         self._update_allied_ships(dt)
         self._update_dmg_numbers(dt)
         self._update_boarding_pods(dt)
+        self._update_cargo_raid_pods(dt)
         self._update_loot_floaters(dt)
+        self._update_raid_outcome_floaters(dt)
         self._pulse_time += dt
 
         # ── Environment updates ────────────────────────────────────────────────
@@ -2123,6 +2154,81 @@ class SpaceCombat:
             if pod[4] >= 1.0:
                 self._boarding_pods.remove(pod)
 
+    # ── Cargo raid pods ────────────────────────────────────────────────────────
+    def _update_cargo_raid_pods(self, dt: float) -> None:
+        """Fly each cargo raid pod toward its target cargo ship.
+        On arrival roll 30% failure chance with random consequences."""
+        for pod in list(self._cargo_raid_pods):
+            cs   = pod["cs"]
+            pod["t"] = min(1.0, pod["t"] + pod["speed"] * dt)
+            # Interpolate pod position toward cargo ship
+            pod["x"] = self.player_ship.x + (cs["x"] - self.player_ship.x) * pod["t"]
+            pod["y"] = self.player_ship.y + (cs["y"] - self.player_ship.y) * pod["t"]
+            if pod["t"] >= 1.0:
+                self._cargo_raid_pods.remove(pod)
+                if cs.get("looted"):
+                    continue  # already looted by another pod
+                # ── Roll failure (30%) ────────────────────────────────────────
+                if random.random() < 0.30:
+                    fail_type = random.choice(["trap", "alarm", "booby"])
+                    if fail_type == "trap":
+                        dmg = 20
+                        self.player_ship.take_damage(dmg, ignore_shield=False)
+                        self._shake = max(self._shake, 8.0)
+                        self._loot_floaters.append(
+                            ["TRAP! -20 hull", cs["x"], cs["y"] - 20, 2.5])
+                        self._raid_outcome_floaters.append(
+                            ["RAID FAILED — TRAP!", cs["x"], cs["y"], 3.0])
+                    elif fail_type == "alarm":
+                        self._loot_floaters.append(
+                            ["ALARM! Enemy called!", cs["x"], cs["y"] - 20, 2.5])
+                        self._raid_outcome_floaters.append(
+                            ["RAID FAILED — ALARM!", cs["x"], cs["y"], 3.0])
+                        # Spawn 1 extra enemy fighter near the cargo ship
+                        from entities.ship import Ship as _Ship
+                        try:
+                            import json as _json, os as _os
+                            _dd = _os.path.join(_os.path.dirname(__file__),
+                                                "..", "data", "ships.json")
+                            with open(_dd) as _f:
+                                _sd = _json.load(_f)
+                            _edata = next((s for s in _sd
+                                           if s.get("class") == "fighter"), _sd[0])
+                            alarm_ship = _Ship(_edata)
+                            alarm_ship.x = cs["x"] + random.uniform(-80, 80)
+                            alarm_ship.y = cs["y"] + random.uniform(-80, 80)
+                            alarm_ship.hull = alarm_ship.max_hull * 0.6
+                            alarm_ship.color_scheme = (220, 80, 40)
+                            from combat.ai import EnemyAI as _AI
+                            self.enemy_ships.append(alarm_ship)
+                            self.ai_controllers.append(_AI(alarm_ship, self.player_ship))
+                            self.all_sprites.add(alarm_ship)
+                        except Exception:
+                            pass
+                    else:  # "booby"
+                        # Lose all asteroid loot collected so far
+                        lost = len(self._asteroid_loot)
+                        self._asteroid_loot.clear()
+                        self._loot_floaters.append(
+                            [f"BOOBY TRAP! Lost {lost} loot", cs["x"], cs["y"] - 20, 2.5])
+                        self._raid_outcome_floaters.append(
+                            ["RAID FAILED — BOOBY TRAP!", cs["x"], cs["y"], 3.0])
+                    cs["pod_launched"] = False   # allow retry
+                else:
+                    # ── Success ──────────────────────────────────────────────
+                    cs["looted"] = True
+                    self._last_cargo_loot = {
+                        "metal":   cs["cargo_metal"],
+                        "fuel":    cs["cargo_fuel"],
+                        "credits": cs["cargo_credits"],
+                    }
+                    self._loot_floaters.append([
+                        f"+{cs['cargo_metal']}mt +{cs['cargo_fuel']}fu "
+                        f"+{cs['cargo_credits']}cr",
+                        cs["x"], cs["y"], 2.5])
+                    self._raid_outcome_floaters.append(
+                        ["RAID SUCCESS!", cs["x"], cs["y"] - 18, 2.0])
+
     # ── Loot floaters ──────────────────────────────────────────────────────────
     def _update_loot_floaters(self, dt: float) -> None:
         for f in self._loot_floaters:
@@ -2141,6 +2247,13 @@ class SpaceCombat:
             entry[2] -= 30 * dt  # float upward
             entry[3] -= dt
         self._dmg_numbers = [e for e in self._dmg_numbers if e[3] > 0]
+
+    def _update_raid_outcome_floaters(self, dt: float) -> None:
+        for rf in self._raid_outcome_floaters:
+            rf[2] -= 18 * dt   # drift upward
+            rf[3] -= dt
+        self._raid_outcome_floaters = [rf for rf in self._raid_outcome_floaters
+                                       if rf[3] > 0]
 
     # ── Draw ──────────────────────────────────────────────────────────────────
     def draw(self, surface: pygame.Surface) -> None:
@@ -2365,6 +2478,35 @@ class SpaceCombat:
             ps_sy = int(self.player_ship.y + oy)
             pygame.draw.line(surface, (40, 120, 100), (ps_sx, ps_sy), (sx, sy), 1)
 
+        # Cargo raid pods (small orange/white diamond with trail line)
+        for rpod in self._cargo_raid_pods:
+            rx2 = int(rpod["x"] + ox)
+            ry2 = int(rpod["y"] + oy)
+            size2 = 5
+            rpts = [(rx2, ry2 - size2), (rx2 + size2, ry2),
+                    (rx2, ry2 + size2), (rx2 - size2, ry2)]
+            pygame.draw.polygon(surface, (255, 140, 40), rpts)
+            pygame.draw.polygon(surface, (255, 220, 140), rpts, 1)
+            # Trail line from player to pod
+            ps_sx2 = int(self.player_ship.x + ox)
+            ps_sy2 = int(self.player_ship.y + oy)
+            pygame.draw.line(surface, (160, 80, 20), (ps_sx2, ps_sy2), (rx2, ry2), 1)
+
+        # Raid outcome floaters (large text above cargo ship)
+        try:
+            ro_font = pygame.font.SysFont("monospace", 14, bold=True)
+            for rf in self._raid_outcome_floaters:
+                alpha2 = max(0, min(255, int(rf[3] / 3.0 * 220)))
+                col2 = (80, 220, 80) if "SUCCESS" in rf[0] else (220, 60, 60)
+                ro_txt = ro_font.render(rf[0], True, col2)
+                ro_s = pygame.Surface(ro_txt.get_size(), pygame.SRCALPHA)
+                ro_s.blit(ro_txt, (0, 0))
+                ro_s.set_alpha(alpha2)
+                surface.blit(ro_s, (int(rf[1] + ox) - ro_txt.get_width() // 2,
+                                    int(rf[2] + oy)))
+        except Exception:
+            pass
+
         # ── Cargo ships in combat arena ───────────────────────────────────────
         for cs in self._cargo_ships_combat:
             if cs["looted"]:
@@ -2392,8 +2534,12 @@ class SpaceCombat:
                     try:
                         raid_f = pygame.font.SysFont("monospace", 11, bold=True)
                         r_pulse = abs(math.sin(self._pulse_time * 4))
-                        r_col   = (int(200 + 55 * r_pulse), 30, 30)
-                        raid_t  = raid_f.render("⚠ RAID  [R]", True, r_col)
+                        if cs.get("pod_launched") and not cs.get("looted"):
+                            r_col  = (255, int(160 + 80 * r_pulse), 0)
+                            raid_t = raid_f.render("⚡ POD IN FLIGHT...", True, r_col)
+                        else:
+                            r_col  = (int(200 + 55 * r_pulse), 30, 30)
+                            raid_t = raid_f.render("⚠ RAID  [R]", True, r_col)
                         surface.blit(raid_t, (csx - raid_t.get_width() // 2, csy - 32))
                     except Exception:
                         pass
